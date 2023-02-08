@@ -10,7 +10,6 @@ const schemaNote_Commitment = new mongoose.Schema({
     process_id: mongoose.SchemaTypes.ObjectId,
     code_note: String,
     value_note: mongoose.Types.Decimal128
-    
 },{
     timestamps:true
 })

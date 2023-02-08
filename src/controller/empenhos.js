@@ -97,7 +97,7 @@ exports.put = async (req, res) => {
       //  const processo = await Processo.updateOne(query, updateDocument)
         await res.status(200).json(empenhos);
     } catch (error) {
-        console.log(error)
+       // console.log(error)
         res.status(404).json({
             msg: error
         });
