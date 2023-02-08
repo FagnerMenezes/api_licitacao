@@ -9,9 +9,10 @@ const schemaNote_Commitment = new mongoose.Schema({
     _id:mongoose.SchemaTypes.ObjectId,
     process_id: mongoose.SchemaTypes.ObjectId,
     code_note: String,
-    value_note: mongoose.Types.Decimal128,
-    createdAt: Date,
-    updatedAt: Date
+    value_note: mongoose.Types.Decimal128
+    
+},{
+    timestamps:true
 })
 const Empenhos = mongoose.model('empenhos',schemaNote_Commitment)
 

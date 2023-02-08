@@ -55,7 +55,7 @@ exports.post = async (req, res) => {
             }
         };
         const processo = await Processo.updateOne(query, updateDocument)
-        await res.status(200).json(empenhos);
+        await res.status(201).json(empenhos);
     } catch (error) {
         res.status(404).json({
             msg: error
@@ -63,7 +63,7 @@ exports.post = async (req, res) => {
     }
 }
 
-exports.patch = async (req, res) => {
+exports.put = async (req, res) => {
 
     try {
      
@@ -74,29 +74,30 @@ exports.patch = async (req, res) => {
         }).catch((err) => {
             res.status(400).send(err)
         })
-        const updateEmpenhos = await Empenho.findById({
-            _id: req.params.id
-        }, req.body).then((dados) => {
-            return dados
-        }).catch((err) => {
-            res.status(400).send(err)
-        })
-        const  body_Empenho_Process ={
-            "government_id":ObjectId(updateEmpenhos.government_id),
-            "code_note": updateEmpenhos.code_note,
-            "value_note": updateEmpenhos.value_note
-            }
-        const query = {
-            _id: ObjectId(updateEmpenhos.process_id)
-        };
-        const updateDocument = {
-            $set: {
-                "note_commitment": body_Empenho_Process
-            }
-        };
-        const processo = await Processo.updateOne(query, updateDocument)
+    //     const updateEmpenhos = await Empenho.findById({
+    //         _id: req.params.id
+    //     }, req.body).then((dados) => {
+    //         return dados
+    //     }).catch((err) => {
+    //         res.status(400).send(err)
+    //     })
+    //     const  body_Empenho_Process ={
+    //         "government_id":ObjectId(updateEmpenhos.government_id),
+    //         "code_note": updateEmpenhos.code_note,
+    //         "value_note": updateEmpenhos.value_note
+    //         }
+    //     const query = {
+    //         _id: ObjectId(updateEmpenhos.process_id)
+    //     };
+    //     const updateDocument = {
+    //         $set: {
+    //             "note_commitment": body_Empenho_Process
+    //         }
+    //    // };
+      //  const processo = await Processo.updateOne(query, updateDocument)
         await res.status(200).json(empenhos);
     } catch (error) {
+        console.log(error)
         res.status(404).json({
             msg: error
         });
