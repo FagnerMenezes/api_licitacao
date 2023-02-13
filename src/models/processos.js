@@ -54,7 +54,21 @@ const procesSchema = new Schema({
       comments:String,
       createdAt:Date
     }
-  ]
+  ],
+  reference_term:{
+    itens:[
+     {
+      cod:String,
+      lote:String,
+      amount:Number,
+      unit:String,
+      description:String,
+      brand:String,
+      model:String,
+      unitary_value:mongoose.SchemaTypes.Decimal128
+     }
+    ]
+  }
 });
 
 const Processos = mongoose.model("Processos", procesSchema);
