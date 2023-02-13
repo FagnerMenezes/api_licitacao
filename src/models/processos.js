@@ -66,7 +66,7 @@ const procesSchema = new Schema({
       brand:String,
       model:String,
       unitary_value:mongoose.SchemaTypes.Decimal128,
-      unitary_value_reference:mongoose.SchemaTypes.Decimal128,
+      value_reference:mongoose.SchemaTypes.Decimal128,
      }
     ]
   }
