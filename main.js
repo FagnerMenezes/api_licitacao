@@ -3,15 +3,15 @@ const cors = require('cors');
 const app = express();
 const bodyParser = require('body-parser');
 
-const orgao = require('./routers/orgaos')
-const index = require('./routers/index')
-const portal =  require('./routers/portais')
-const processo = require('./routers/processos')
-const empenho = require('./routers/empenhos')
-const modalidade = require('./routers/modalidades')
-const tipo_disputa = require('./routers/tipoDisputa')
-const status = require('./routers/status')
-const bec = require('./routers/bec')
+const orgao = require('./src/routers/orgaos')
+const index = require('./src/routers/index')
+const portal =  require('./src/routers/portais')
+const processo = require('./src/routers/processos')
+const empenho = require('./src/routers/empenhos')
+const modalidade = require('./src/routers/modalidades')
+const tipo_disputa = require('./src/routers/tipoDisputa')
+const status = require('./src/routers/status')
+const bec = require('./src/routers/bec')
 
 app.use(express.json())
 app.use(bodyParser.urlencoded({extended:false}))
