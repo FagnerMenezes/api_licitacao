@@ -11,6 +11,7 @@ const empenho = require('./routers/empenhos')
 const modalidade = require('./routers/modalidades')
 const tipo_disputa = require('./routers/tipoDisputa')
 const status = require('./routers/status')
+const bec = require('./routers/bec')
 
 app.use(express.json())
 app.use(bodyParser.urlencoded({extended:false}))
@@ -25,6 +26,7 @@ app.use('/modalidades',modalidade)
 app.use('/tipo_disputa',tipo_disputa),
 app.use('/status',status)
 app.use('/empenhos',empenho)
+app.use('/bec',bec)
 
 const port = process.env.PORT || 21138
 app.listen(port, (err) =>{

@@ -5,11 +5,13 @@ const status_ = {
     get: async (req,res) =>{
            try {
             const response = await Status_.find().then( (data) =>{
+               ;
                 return data;
             })
+            
             res.status(200).json(response)
            } catch (error) {
-                res.status(400).json({msg:error})
+                res.status(400).json({msg:error.message})
            }
     },
     post: async (req,res) =>{
