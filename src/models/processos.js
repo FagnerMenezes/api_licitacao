@@ -6,12 +6,10 @@ const Schema = mongoose.Schema;
 const procesSchema = new Schema({
   process_data: {
     n_process: String,
-    bidding_notice: String, 
+    bidding_notice: String,
     date_finish: Date,
     object: String,
     hours_finish: String,
-    createdAt: Date,
-    updatedAt: Date,
     code_bidding: String,
     date_init: Date,
     status: {
@@ -31,47 +29,86 @@ const procesSchema = new Schema({
       name: String,
     },
   },
-  participating_bodies: [
+  government: [
     {
       government_id: mongoose.SchemaTypes.ObjectId,
+      name: String,
+      cnpj: String,
+      code_government: String,
+      manager: Boolean,
+      address: [
+        {
+          _id: String,
+          zip_code: String,
+          complement: String,
+          street: String,
+          number: String,
+          district: String,
+          city: String,
+          type_address: {
+            id: String,
+            name: String,
+          },
+          uf: {
+            id: String,
+            name: String,
+          },
+        },
+      ],
+      contact: [
+        {
+          _id: String,
+          name: String,
+          sector: String,
+          contact: String,
+          tipo: {
+            id: String,
+            name: String,
+          },
+        },
+      ],
     },
   ],
-  government: {
-    government_id: mongoose.SchemaTypes.ObjectId,
-    name: String,
-    cnpj: String,
-  },
   note_commitment: [
     {
-      government_id: mongoose.SchemaTypes.ObjectId,
       code_note: String,
-      value_note: mongoose.SchemaTypes.Decimal128,
-    },
-  ],
-  notes:[
-    {
-      _id:String,
-      comments:String,
-      createdAt:Date
+      value_note: mongoose.Types.Decimal128,
+      status_note: {
+        _id: String,
+        name: String
+      }
     }
   ],
-  reference_term:{
-    itens:[
-     {
-      cod:String,
-      lote:String,
-      amount:Number,
-      unit:String,
-      description:String,
-      brand:String,
-      model:String,
-      unitary_value:mongoose.SchemaTypes.Decimal128,
-      value_reference:mongoose.SchemaTypes.Decimal128,
-     }
+  notes: [
+    {
+      _id: String,
+      comments: String,
+      createdAt: Date
+    }
+  ],
+  reference_term: {
+    validity: String,
+    guarantee: String,
+    deadline: String,
+    comments: String,
+    itens: [
+      {
+        cod: String,
+        lote: String,
+        amount: Number,
+        unit: String,
+        description: String,
+        brand: String,
+        model: String,
+        unitary_value: mongoose.SchemaTypes.Decimal128,
+        value_reference: mongoose.SchemaTypes.Decimal128,
+        winner: Boolean,
+        item_balance:Number
+      }
     ]
   }
 });
 
 const Processos = mongoose.model("Processos", procesSchema);
 
-module.exports = Processos
+module.exports = Processos;

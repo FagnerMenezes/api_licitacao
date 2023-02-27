@@ -105,7 +105,7 @@ const Bec = {
 
   getDataGoverment: async (req, res) => {
     let oc = req.params.oc;
-    const n_uge = oc.substring(0, 6)
+    const n_uge = oc.substring(0, 6);
 
     const getUrl = await axios.default.get(await url(oc)).then((html) => {
       const dom = chr.load(html.data);
@@ -177,8 +177,8 @@ const Bec = {
         const cnpj = dom("#ContentPlaceHolder1_txtRetCNPJ").val();
         const nome = dom("#ContentPlaceHolder1_txtRetNome").val();
         const uge = dom("#ContentPlaceHolder1_txtRetUge").val();
-    
-        return {cnpj,nome,uge};
+
+        return { cnpj, nome, uge };
       });
 
     const Responsaveis = await axios.default
@@ -222,14 +222,16 @@ const Bec = {
           endereco_principal: dataset[0].dados,
           telefone: dataset[1].dados,
           endereco_entrega: dataset[2].dados,
-          objeto: dataset[3].dados   
+          objeto: dataset[3].dados,
         },
         links: Links,
         itens: Itens,
-        responsavei:Responsaveis
+        responsavei: Responsaveis,
       };
       res.status(200).json({ data: dados });
     });
+  },
+  loginBec: async (req, res, next) => {
     
   },
 };

@@ -93,7 +93,7 @@ exports.post = async (req, res) => {
   try {
     const Processos = await Processo.create(req.body).then((result) => {
       return result;
-    });
+    }).catch((err) => {console.log(err)});
     await res.status(201).json(Processos);
   } catch (error) {
     res.status(404).json({
