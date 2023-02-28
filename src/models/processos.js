@@ -35,7 +35,7 @@ const procesSchema = new Schema({
       name: String,
       cnpj: String,
       code_government: String,
-      manager: Boolean,
+      manager: String,
       address: [
         {
           _id: String,
@@ -53,7 +53,7 @@ const procesSchema = new Schema({
             id: String,
             name: String,
           },
-        },
+        }
       ],
       contact: [
         {
@@ -64,9 +64,9 @@ const procesSchema = new Schema({
           tipo: {
             id: String,
             name: String,
-          },
-        },
-      ],
+          }
+        }
+      ]
     },
   ],
   note_commitment: [
