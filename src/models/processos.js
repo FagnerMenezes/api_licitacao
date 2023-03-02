@@ -103,7 +103,7 @@ const procesSchema = new Schema({
         model: String,
         unitary_value: mongoose.SchemaTypes.Decimal128,
         value_reference: mongoose.SchemaTypes.Decimal128,
-        winner: Boolean,
+        winner: String,
         item_balance:Number
       }
     ]
