@@ -31,7 +31,6 @@ const procesSchema = new Schema({
   },
   government: [
     {
-      government_id: mongoose.SchemaTypes.ObjectId,
       name: String,
       cnpj: String,
       code_government: String,
@@ -71,6 +70,7 @@ const procesSchema = new Schema({
   ],
   note_commitment: [
     {
+      _id: String,
       code_note: String,
       value_note: mongoose.Types.Decimal128,
       status_note: {
