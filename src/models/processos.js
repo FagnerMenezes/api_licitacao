@@ -93,7 +93,7 @@ const procesSchema = new Schema({
     comments: String,
     itens: [
       {
-        id:String,
+        _id:String,
         cod: String,
         lote: String,
         amount: Number,
