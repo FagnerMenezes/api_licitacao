@@ -31,6 +31,7 @@ const procesSchema = new Schema({
   },
   government: [
     {
+      _id:String,
       name: String,
       cnpj: String,
       code_government: String,
