@@ -23,8 +23,12 @@ const Bec = {
           });
           //console.log(dataset);
         });
-        // console.log('teste')
-        res.status(200).json({ chat: dataset });
+        if(dataset.length > 0){
+          res.status(200).json({ chat: dataset });
+        }else{
+          res.status(200).json({ chat: {msg:'Não há mensagens para ser exibidas'} });
+        }
+        
       })
       .catch((err) => {
         console.error(err);
