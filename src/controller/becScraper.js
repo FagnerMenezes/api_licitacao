@@ -22,16 +22,11 @@ const Bec = {
             msg: link.children[1].children[0].data,
           });
           //console.log(dataset);
-        });
-        if(dataset.length > 0){
-          res.status(200).json({ chat: dataset });
-        }else{
-          res.status(200).json({ chat: {msg:'Não há mensagens para ser exibidas'} });
-        }
-        
+        });       
+          res.status(200).json({ chat: dataset }); 
       })
       .catch((err) => {
-        console.error(err);
+        res.status(404).json({ msg: err.message }); 
       });
   },
   getItems: async (req, res) => {
