@@ -66,7 +66,7 @@ function token(user) {
       name: user[0].name,
     },
     secret,
-    { expiresIn: "3h" }
+    { expiresIn: "365 days" }
   );
   return token;
 }
