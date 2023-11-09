@@ -5,7 +5,7 @@ const {
   getItemsBiddings,
 } = require("../controller/comprasnetScraping");
 
-Router.get("/biddings", getDataBiddings);
+Router.post("/biddings", getDataBiddings);
 Router.get("/items_biddings", getItemsBiddings);
 //Router.route("/login").get((req, res) => comprasnet.loginComprasnet(req, res));
 // Router.route('/links/:oc').get( (req,res) => bec.getLinks(req, res) )

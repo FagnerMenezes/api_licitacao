@@ -8,13 +8,14 @@
 //http://comprasnet.gov.br/livre/Pregao/Mensagens_Sessao_Publica.asp?prgCod=1124550
 
 //const puppeteer = require("puppeteer");
-const puppeteer = require("puppeteer-extra");
+//const puppeteer = require("puppeteer-extra");
 const axios = require("axios");
 const chr = require("cheerio");
 const { v4: ID } = require("uuid");
-const { errors } = require("puppeteer-core");
-const { response } = require("express");
-const { decodeBase64 } = require("bcryptjs");
+//const { errors } = require("puppeteer-core");
+//const { response } = require("express");
+//const { decodeBase64 } = require("bcryptjs");
+const { StatusCodes } = require("http-status-codes");
 
 // const config = {
 //   sitekey: "93b08d40-d46c-400a-ba07-6f91cda815b9",
@@ -80,160 +81,182 @@ const { decodeBase64 } = require("bcryptjs");
 //   return url;
 // }
 
+async function totalBiddings(dt_inicio, dt_fim) {
+  const data = await axios.default
+    .get(urlGetBiddingComprasnet(dt_inicio, dt_fim, 1, "", ""), {
+      responseType: "json",
+      charset: "utf-8",
+      responseEncodig: "utf-8",
+    })
+    .then((html) => {
+      const $ = chr.load(html.data, { decodeEntities: false });
+      const textTotalBiddings = $(".td_titulo_campo").text();
+      const totalBiddings = textTotalBiddings
+        .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
+        .replace(/[^0-9]/g, "")
+        .trim();
+
+      const total = parseInt(totalBiddings);
+      const totalPage = Math.ceil(parseFloat(total / 10));
+
+      return totalPage;
+    });
+  return data;
+}
+
 async function getDataBiddings(req, res) {
-  const uasg = req.query.uasg || "";
-  const numEdital = req.query.num_edital || "";
-  const pagina = req.query.n_pagina || "";
-  const dtInicio = req.query.dt_inicio || "";
-  const dtFim = req.query.dt_fim || "";
+  const { uasg, edital, pagina, dt_inicio, dt_fim } = req.body;
   let total = "";
   let totalPage = "";
+  const biddings = [];
   try {
-    //const data = [];
-    const data = await axios.default
-      .get(urlGetBiddingComprasnet(dtInicio, dtFim, pagina, uasg, numEdital))
-      .then((html) => {
-        const $ = chr.load(html.data);
-        const data = [];
-        const textTotalBiddings = $(".td_titulo_campo").text();
-        const totalBiddings = textTotalBiddings
-          .substring(textTotalBiddings.length - 8, textTotalBiddings.length)
-          .replace(/[^0-9]/g, "")
-          .trim();
-        total = parseInt(totalBiddings);
-        totalPage = Math.ceil(parseFloat(total / 10));
-        //console.log(totalPage);
-        $(".tex3")
-          .children("td")
-          .each((i, el) => {
-            const extractNumUasg = $(el)
-              .find("b:nth-child(1)")
-              .text()
-              .replace(/[^0-9]/g, "");
-            const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
-            const extractNumPregao = $(el)
-              .find("b:nth-child(3)")
-              .text()
-              .replace(/[^a-zA-Z0-9]/g, "");
+    const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
+    console.log(pagina);
+    let dataBiddings = [];
+    let data = [];
+    let count = 1;
+    for (let i = count; i <= 1; i++) {
+      const dataBidding = await axios.default
+        .get(urlGetBiddingComprasnet(dt_inicio, dt_fim, pagina, uasg, edital), {
+          responseType: "json",
+          charset: "utf-8",
+          responseEncodig: "utf-8",
+        })
+        .then((html) => {
+          const $ = chr.load(html.data, { decodeEntities: false });
+          const data = [];
+          const textTotalBiddings = $(".td_titulo_campo").text();
+          const totalBiddings = textTotalBiddings
+            .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
+            .replace(/[^0-9]/g, "")
+            .trim();
+          //console.log(totalBiddings);
+          total = parseInt(totalBiddings);
+          totalPage = Math.ceil(parseFloat(total / 10));
 
-            const extract_data_hs = String(el.children[23].data).replace(
-              /[^0-9]/g,
-              ""
-            );
-            const extract_data = String(el.children[8].data).replace(
-              /[^0-9]/g,
-              ""
-            );
-            const address = String(el.children[11].data);
-            const city = String(el.children[11].data)
-              .replace(/\ufffd/gim, "")
-              .match(
-                /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
+          $(".tex3")
+            .children("td")
+            .each((i, el) => {
+              const extractNumUasg = $(el)
+                .find("b:nth-child(1)")
+                .text()
+                .replace(/[^0-9]/g, "");
+              const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
+              const extractNumPregao = $(el)
+                .find("b:nth-child(3)")
+                .text()
+                .replace(/[^a-zA-Z0-9]/g, "");
+
+              const extract_data_hs = String(el.children[23].data).replace(
+                /[^0-9]/g,
+                ""
               );
+              const extract_data = String(el.children[8].data).replace(
+                /[^0-9]/g,
+                ""
+              );
+              const address = String(el.children[11].data);
+              const city = String(el.children[11].data)
+                .replace(/\ufffd/gim, "")
+                .match(
+                  /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
+                );
 
-            data.push({
-              government: [
-                {
-                  _id: ID(),
-                  name: "",
-                  code_government: uasg,
-                  manager: true,
-                  address: [
-                    {
-                      _id: ID(),
-                      zip_code: "",
-                      complement: "",
-                      street: el.children[11].data,
-                      number: String(el.children[11].data)
-                        .substring(
-                          String(el.children[11].data).indexOf(","),
-                          String(el.children[11].data).indexOf(",") + 10
-                        )
-                        .replace(/[^0-9]/g, "")
-                        .trim(),
-                      district: "",
-                      city: String(city)
-                        .substring(0, String(city).length - 4)
-                        .trim(),
-                      type_address: "LICITAÇÃO",
-                      uf: String(el.children[11].data)
-                        .substring(
-                          String(address).length - 4,
-                          String(address).length
-                        )
-                        .replace(/[^a-zA-Z]/g, "")
-                        .trim(),
-                    },
-                  ],
-                  contact: [
-                    {
-                      _id: ID(),
-                      name: "COMPRAS",
-                      sector: "LICITAÇÃO",
-                      contact: String(el.children[14].data).replace(
-                        /[^0-9]/g,
-                        ""
-                      ),
-                      tipo: "TEL",
-                    },
-                  ],
-                },
-              ],
-              reference_term: [
-                {
+              const biddings = {
+                government: [
+                  {
+                    _id: ID(),
+                    name: "",
+                    code_government: uasg,
+                    manager: true,
+                    address: [
+                      {
+                        _id: ID(),
+                        zip_code: "",
+                        complement: "",
+                        street: el.children[11].data,
+                        number: String(el.children[11].data)
+                          .toUpperCase()
+                          .substring(
+                            String(el.children[11].data).indexOf(","),
+                            String(el.children[11].data).indexOf(",") + 10
+                          )
+                          .replace(/[^0-9]/g, "")
+                          .trim(),
+                        district: "",
+                        city: String(city)
+                          .substring(0, String(city).length - 4)
+                          .trim(),
+                        type_address: "LICITAÇÃO",
+                        uf: String(el.children[11].data)
+                          .substring(
+                            String(address).length - 4,
+                            String(address).length
+                          )
+                          .replace(/[^a-zA-Z]/g, "")
+                          .trim(),
+                      },
+                    ],
+                    contact: [
+                      {
+                        _id: ID(),
+                        name: "COMPRAS",
+                        sector: "LICITAÇÃO",
+                        contact: String(el.children[14].data).replace(
+                          /[^0-9]/g,
+                          ""
+                        ),
+                        tipo: "TEL",
+                      },
+                    ],
+                  },
+                ],
+                reference_term: {
                   validity: "",
                   guarantee: "",
                   deadline: "",
-                  itens: [
-                    {
-                      _id: ID(),
-                      cod: "",
-                      lote: "",
-                      amount: "",
-                      unit: "",
-                      description: "",
-                      brand: "",
-                      model: "",
-                      unitary_value: 0,
-                      value_reference: 0,
-                      winner: "false",
-                      item_balance: 0,
-                    },
-                  ],
+                  itens: [],
                 },
-              ],
-              process_data: {
-                status: "Cadastrar proposta",
-                type_dispute: "Menor preço unitário",
-                modality: "PE",
-                portal: "COMPRASNET",
-                n_process: extractNumPregao
-                  .substring(10, 22)
-                  .replace(/[a-zA-Z]/g, ""),
-                bidding_notice: extractNumPregao
-                  .substring(10, 22)
-                  .replace(/[a-zA-Z]/g, ""),
-                date_finish:
-                  extract_data_hs.substring(4, 8) +
-                  "-" +
-                  extract_data_hs.substring(2, 4) +
-                  "-" +
-                  extract_data_hs.substring(0, 2),
-                object: String(el.children[5].data).trim(),
-                hours_finish:
-                  extract_data_hs.substring(8, 10) +
-                  ":" +
-                  extract_data_hs.substring(10, 12),
-                date_init: String(el.children[20].data)
-                  .replace(/[^0-9]/gim, "")
-                  .substring(0, 8)
-                  .replace(/([0-9]{2})([0-9]{2})([0-9]{4})/g, "$3-$2-$1")
-                  .trim(),
-              },
+                process_data: {
+                  status: "Cadastrar proposta",
+                  type_dispute: "Menor preço unitário",
+                  modality: "PE",
+                  portal: "COMPRASNET",
+                  n_process: extractNumPregao
+                    .substring(10, 22)
+                    .replace(/[a-zA-Z]/g, ""),
+                  bidding_notice: extractNumPregao
+                    .substring(10, 22)
+                    .replace(/[a-zA-Z]/g, ""),
+                  date_finish:
+                    extract_data_hs.substring(4, 8) +
+                    "-" +
+                    extract_data_hs.substring(2, 4) +
+                    "-" +
+                    extract_data_hs.substring(0, 2),
+                  object: String(el.children[5].data).trim(),
+                  hours_finish:
+                    extract_data_hs.substring(8, 10) +
+                    ":" +
+                    extract_data_hs.substring(10, 12),
+                  date_init: String(el.children[20].data)
+                    .replace(/[^0-9]/gim, "")
+                    .substring(0, 8)
+                    .replace(/([0-9]{2})([0-9]{2})([0-9]{4})/g, "$3-$2-$1")
+                    .trim(),
+                },
+              };
+
+              data.push(biddings);
             });
-          });
-        return data;
-      });
+
+          dataBiddings.push(...data);
+          //console.log(dataBiddings,i);
+          return dataBiddings;
+        });
+      data = dataBidding;
+    }
+    console.log("finalizou", "dados licitação");
 
     for (let i = 0; i < data.length; i++) {
       const uasg = data[i].government[0].code_government;
@@ -243,19 +266,31 @@ async function getDataBiddings(req, res) {
       });
 
       data[i].government[0].name = nameGovernment.replace(/\n/g, "").trim();
-      //data.push(nameGovernment.replace(/\n/g, ""));
     }
+    console.log("finalizou", "dados orgao");
     for (let i = 0; i < data.length; i++) {
       const uasg = data[i].government[0].code_government;
       const pregao = data[i].process_data.bidding_notice;
-      const items = await extractItemsBidding(uasg, pregao, 1).then((data) => {
-        return data;
-      });
-      data[i].reference_term[0].itens = items;
-      // data.push(nameGovernment, items);
+      const { totalPages, totalItems } = await extractItemsBidding(
+        uasg,
+        pregao,
+        1
+      ).then((data) => data);
+      const item = [];
+      for (let t = 1; t <= parseInt(totalPages); t++) {
+        const items = await extractItemsBidding(uasg, pregao, t).then(
+          (data) => {
+            item.push(...data.items);
+            return item;
+          }
+        );
+
+        data[i].reference_term.itens = { items }; //items;
+      }
     }
+    console.log("finalizou", "itens");
     res
-      .status(200)
+      .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
   } catch (error) {
     res.status(404).json({ error: error.message });
@@ -325,7 +360,6 @@ http://comprasnet.gov.br/ConsultaLicitacoes/ConsLicitacao_Relacao.asp?
 dt_publ_ini=${date_init}&
 dt_publ_fim=${date_finish}&
 chkModalidade=5&
-chk_pregao=2&
 numpag=${num_page}&
 Origem=F&
 numprp=${num_bidding}&
@@ -333,7 +367,7 @@ optTpPesqMat=M&
 optTpPesqServ=N&
 txtlstUasg=${num_uasg}&
 txtlstMaterial=${items}`;
-    // console.log(url);
+    //console.log(url);
     return url;
   } catch (error) {
     return error.message;
@@ -354,7 +388,7 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
 
     const items = [];
     const data = $("br + .tex3");
-    const { totalItems, totalPages } = await totalPageAnItems(
+    const { totalItems, totalPages } = await totalPageAndItems(
       uasg,
       pregao,
       1
@@ -368,6 +402,28 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
 
     data.each((i, el) => {
       if (i >= amountItems) return;
+      const descriptionItems = [];
+      descriptionItems.push(String(el.children[0].data));
+      const keywords = [
+        "ELETRODO",
+        "ARAME MIG",
+        "ELETRODOS",
+        "SOLDA",
+        "SOLDAGEM",
+        "DISCO DE CORTE",
+        "PARAFUSADEIRA",
+        "TOCHA",
+        "COMPRESSOR",
+        "REGULADOR",
+        "CILINDRO",
+        "FURADEIRA",
+      ];
+
+      const filteredDescriptionItems = descriptionItems.filter((item) => {
+        return keywords.some((keyword) => item.toUpperCase().includes(keyword));
+      });
+
+      if (filteredDescriptionItems.length <= 0) return;
 
       const item = {
         _id: ID(),
@@ -389,6 +445,7 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
         winner: "false",
         item_balance: 0,
       };
+
       items.push(item);
     });
 
@@ -425,11 +482,11 @@ const htmlItemsBidding = async (uasg, pregao, pagina) => {
     const $ = chr.load(response.data);
     return $;
   } catch (error) {
-    return error;
+    return error.message;
   }
 };
 
-const totalPageAnItems = async (uasg, pregao, pagina) => {
+const totalPageAndItems = async (uasg, pregao, pagina) => {
   try {
     const $ = await htmlItemsBidding(uasg, pregao, 1).then((result) => {
       return result;

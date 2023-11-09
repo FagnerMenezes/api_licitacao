@@ -105,7 +105,7 @@ const Bec = {
   getDataGovernment: async (req, res) => {
     try {
       const oc = req.params.oc;
-      console.log(oc);
+      //console.log(oc);
       const url = `https://www.bec.sp.gov.br/bec_pregao_UI/OC/Pregao_OC_Item.aspx?chave=&OC=${oc}`;
       // const chave = await getChaveBec();
       // if (chave.url.length > 0) {
