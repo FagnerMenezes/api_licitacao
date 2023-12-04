@@ -25,6 +25,7 @@ async function getItemsBec(url, localHost) {
     const dt = {
       _id: ID(),
       cod: $(el).find($("[data-label=Item]")).text(),
+      code: $(el).find($("[data-label=Código]")).text(),
       lote: $(el).find($("[data-label=Item]")).text(),
       amount: parseInt($(el).find($("[data-label=Qtde.]")).text()),
       unit: $(el)
@@ -40,6 +41,7 @@ async function getItemsBec(url, localHost) {
       item_balance: 0,
       link_description_item: `http://${localHost}:21052/bec/description-item/${codeItem}`,
     };
+    //console.log(dt);
     items.push(dt);
   });
   return items;
@@ -105,7 +107,7 @@ const Bec = {
   getDataGovernment: async (req, res) => {
     try {
       const oc = req.params.oc;
-      //console.log(oc);
+      console.log(oc);
       const url = `https://www.bec.sp.gov.br/bec_pregao_UI/OC/Pregao_OC_Item.aspx?chave=&OC=${oc}`;
       // const chave = await getChaveBec();
       // if (chave.url.length > 0) {
@@ -120,6 +122,7 @@ const Bec = {
           const dom = cheerio.load(html.data);
           const dataset = [];
           dom("a", "#topMenu").each((i, link) => {
+            // console.log(link.attribs.href, i);
             dataset.push({
               key: i,
               descricao: link.children[0].data,
@@ -129,7 +132,7 @@ const Bec = {
           return dataset;
         })
         .catch((err) => console.log(err));
-
+      //console.log(getUrl);
       const Links = await axios.default.get(url).then((html) => {
         const dom = cheerio.load(html.data);
         const dataset = [];
@@ -207,17 +210,21 @@ const Bec = {
           });
           return dataset;
         });
+      const urlGetDateDispute =
+        getUrl.length >= 9 ? getUrl[8].link : getUrl[6].link;
+      console.log(getUrl.length);
       const dateDispute = await axios.default
-        .get(getUrl[8].link)
+        .get(urlGetDateDispute)
         .then((html) => {
           const $ = cheerio.load(html.data);
           const data = $("tbody tr");
-          // console.log(data);
+          //console.log(data);
           const colSelector = "tr:nth-child(5) ,td:nth-child(2)";
           let dt = "";
           data.each((i, el) => {
             dt = $(el).find(colSelector).text();
           });
+          //console.log(dt);
           const date = String(dt).substring(19, 29);
           const year = String(date).substring(6, 10);
           const month = String(date).substring(3, 5);
@@ -226,6 +233,12 @@ const Bec = {
           return {
             date: `${year}-${month}-${day}`,
             hours: dt.substring(30),
+          };
+        })
+        .catch((err) => {
+          return {
+            date: `0000-00-0}`,
+            hours: "00:00",
           };
         });
 
@@ -313,7 +326,7 @@ const Bec = {
     try {
       const codeItem = req.params.codeItem;
 
-      //console.log(req.hostname);
+      // console.log(codeItem);
       const urlSearchItem = `https://www.bec.sp.gov.br/BEC_Catalogo_ui/CatalogDetalheNovo.aspx?chave=&selo=0&cod_id=${codeItem}`;
       const html = await axios.default
         .get(urlSearchItem)
@@ -322,7 +335,6 @@ const Bec = {
       const descriptionItem = $(
         "#ContentPlaceHolder1_lbCaracteristicaCompleta"
       ).text();
-
       if (descriptionItem.length > 0) {
         res.status(200).send({ description: descriptionItem });
       } else {

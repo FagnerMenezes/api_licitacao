@@ -5,6 +5,7 @@ const jsw = require("jsonwebtoken");
 const user = {
   auth: async (req, res) => {
     const login = await authServices.login(req.body);
+    //console.log(login);
     res.status(login.status).json(login);
   },
   create: async (req, res) => {

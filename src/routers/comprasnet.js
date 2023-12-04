@@ -1,14 +1,16 @@
 const express = require("express");
 const Router = express.Router();
+const { authenticated } = require("../controller/user");
 const {
   getDataBiddings,
   getItemsBiddings,
+  registerProposalComprasnet,
 } = require("../controller/comprasnetScraping");
 
-Router.post("/biddings", getDataBiddings);
-Router.get("/items_biddings", getItemsBiddings);
-//Router.route("/login").get((req, res) => comprasnet.loginComprasnet(req, res));
-// Router.route('/links/:oc').get( (req,res) => bec.getLinks(req, res) )
-// Router.route('/dados/:oc').get( (req,res) => bec.getDataGoverment(req, res) )
+Router.post("/biddings", authenticated, getDataBiddings);
+Router.get("/items_biddings", authenticated, getItemsBiddings);
+Router.route("/register-proposal").post((req, res) =>
+  registerProposalComprasnet(req, res)
+);
 
 module.exports = Router;

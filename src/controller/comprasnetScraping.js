@@ -16,6 +16,9 @@ const { v4: ID } = require("uuid");
 //const { response } = require("express");
 //const { decodeBase64 } = require("bcryptjs");
 const { StatusCodes } = require("http-status-codes");
+const token =
+  "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
+//const { next } = require("cheerio/lib/api/traversing");
 
 // const config = {
 //   sitekey: "93b08d40-d46c-400a-ba07-6f91cda815b9",
@@ -105,13 +108,14 @@ async function totalBiddings(dt_inicio, dt_fim) {
 }
 
 async function getDataBiddings(req, res) {
+  //console.log(req.body);
   const { uasg, edital, pagina, dt_inicio, dt_fim } = req.body;
   let total = "";
   let totalPage = "";
   const biddings = [];
   try {
     const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
-    console.log(pagina);
+
     let dataBiddings = [];
     let data = [];
     let count = 1;
@@ -163,9 +167,11 @@ async function getDataBiddings(req, res) {
                 );
 
               const biddings = {
+                _id: ID(),
                 government: [
                   {
                     _id: ID(),
+                    cnpj: "000000000",
                     name: "",
                     code_government: uasg,
                     manager: true,
@@ -278,17 +284,19 @@ async function getDataBiddings(req, res) {
       ).then((data) => data);
       const item = [];
       for (let t = 1; t <= parseInt(totalPages); t++) {
-        const items = await extractItemsBidding(uasg, pregao, t).then(
+        const itens = await extractItemsBidding(uasg, pregao, t).then(
           (data) => {
-            item.push(...data.items);
+            item.push(...data.itens);
             return item;
           }
         );
-
-        data[i].reference_term.itens = { items }; //items;
+        //console.log(itens);
+        data[i].reference_term.itens = itens; //items;
       }
     }
     console.log("finalizou", "itens");
+    await extractGroupNumbers();
+    // console.log(JSON.stringify(result, null, 2));
     res
       .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
@@ -386,7 +394,7 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
       (response) => response
     );
 
-    const items = [];
+    const itens = [];
     const data = $("br + .tex3");
     const { totalItems, totalPages } = await totalPageAndItems(
       uasg,
@@ -440,16 +448,21 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
         description: el.children[0].data,
         brand: "",
         model: "",
-        unitary_value: 0,
-        value_reference: 0,
+        unitary_value: {
+          $numberDecimal: "0",
+        },
+        value_reference: {
+          $numberDecimal: "0",
+        },
         winner: "false",
         item_balance: 0,
+        origination: "",
       };
 
-      items.push(item);
+      itens.push(item);
     });
 
-    return { items, totalItems, totalPages };
+    return { itens, totalItems, totalPages };
   } catch (error) {
     console.error("Error", error.message);
     return { error: error.message };
@@ -711,7 +724,115 @@ const extractNameGovernment = async (uasg) => {
 //   return idcaptcha;
 // }
 
-module.exports = { getDataBiddings, getItemsBiddings };
+async function extractGroupNumbers() {
+  const html = await axios.default
+    .get(
+      "http://comprasnet.gov.br/ConsultaLicitacoes/download/download_editais_detalhe.asp?coduasg=158516&modprp=5&numprp=1002021&pagina=2"
+    )
+    .then((response) => response.data);
+  //console.log(html)
+  const $ = chr.load(html);
+  //const $ = data(".tex3b + table > tbody > tr");
+  //console.log($);
+  const groups = [];
+  let currentGroup = "";
+  const txt = String($(".tex3b").text()).includes("Grupos");
+  //console.log(txt);
+  if (txt) {
+    //console.log($("td"));
+    $(".tex3b").each((index, element) => {
+      const groupText = $(element).text().trim();
+      if (groupText.startsWith("G")) {
+        // console.log("passou");
+        console.log($(element).text());
+        console.log($(element).nextUntil("span.tex3").text());
+
+        // if (currentGroup) {
+        //   groups.push({
+        //     group: currentGroup,
+        //     numbers: groupNumbers,
+        //   });
+        // }
+
+        // currentGroup = groupText;
+        // var groupNumbers = [];
+      } else {
+        //console.log($(element.tagName()));
+        // const numberMatch = $(element)
+        //   .nextUntil("span.tex3b")
+        //   .filter("span.tex3")
+        //   .text()
+        //   .match(/\d+/);
+      }
+    });
+  }
+
+  // console.log("está aqui", numberMatch);
+  //   //   if (numberMatch) {
+  //   //     const number = parseInt(numberMatch[0]);
+  //   //     groupNumbers.push({
+  //   //       number: number,
+  //   //       text: $(element)
+  //   //         .nextUntil("span.tex3b")
+  //   //         .filter("span.tex3")
+  //   //         .text()
+  //   //         .trim(),
+  //   //     });
+  //   //   }
+  //   // }
+  // });
+
+  // if (currentGroup) {
+  //   //console.log("currentGroup", currentGroup);
+  //   groups.push({
+  //     group: currentGroup,
+  //     numbers: groupNumbers,
+  //   });
+  // }
+  //console.log(groups);
+  return {}; //;
+}
+
+async function registerProposalComprasnet(req, res) {
+  console.log(req.body);
+  try {
+    const url =
+      "https://mdw.minha.effecti.com.br/api-integracao/v1/proposta/comprasnet";
+    const authorization = "Bearer " + token;
+    const headersList = {
+      Accept: "*/*",
+      Authorization: authorization,
+      "Content-Type": "application/json",
+    };
+    const bodyContent = req.body;
+    //console.log(bodyContent);
+    const reqOptions = {
+      url: url,
+      method: "POST",
+      headers: headersList,
+      data: bodyContent,
+    };
+    const response = await axios.default
+      .request(reqOptions)
+      .then((response) => {
+        //console.log(response);
+        return res.status(200).json(response.data);
+      })
+      .catch((err) => {
+        console.log(err.response.data);
+        return res.status(400).json(err.response);
+      });
+  } catch (error) {
+    //console.log(error.message);
+    res.status(500).json(error);
+  }
+}
+
+module.exports = {
+  getDataBiddings,
+  getItemsBiddings,
+  registerProposalComprasnet,
+};
 //SITE KEY
 //93b08d40-d46c-400a-ba07-6f91cda815b9
 //93b08d40-d46c-400a-ba07-6f91cda815b9
