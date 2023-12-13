@@ -1,88 +1,9 @@
-//URL PARA PEGAR AS MENSAGENS
-//http://comprasnet.gov.br/livre/Pregao/Mensagens_Sessao_Publica.asp?prgCod=1115273
-//URL AVISOS
-//http://comprasnet.gov.br/livre/Pregao/avisos1.asp?prgCod=1124550&Origem=Avisos&Tipo=A
-//URL POST AVISOS
-//http://comprasnet.gov.br/livre/Pregao/lista_pregao.asp
-//URL CHAT
-//http://comprasnet.gov.br/livre/Pregao/Mensagens_Sessao_Publica.asp?prgCod=1124550
-
-//const puppeteer = require("puppeteer");
-//const puppeteer = require("puppeteer-extra");
 const axios = require("axios");
 const chr = require("cheerio");
 const { v4: ID } = require("uuid");
-//const { errors } = require("puppeteer-core");
-//const { response } = require("express");
-//const { decodeBase64 } = require("bcryptjs");
 const { StatusCodes } = require("http-status-codes");
 const token =
   "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
-//const { next } = require("cheerio/lib/api/traversing");
-
-// const config = {
-//   sitekey: "93b08d40-d46c-400a-ba07-6f91cda815b9",
-//   pageurl: "https://www.gov.br/pt-br",
-//   apiKey: "ec8254f0e237492c8bd5e74ce3948eb4",
-//   apiSubmitUrl: "http://2captcha.com/in.php",
-//   apiRetrieveUrl: "http://2captcha.com/res.php",
-// };
-
-// const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
-// puppeteer.use(
-//   RecaptchaPlugin({
-//     provider: {
-//       id: "2captcha",
-//       token: "ec8254f0e237492c8bd5e74ce3948eb4", // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
-//     },
-//     visualFeedback: true, // colorize reCAPTCHAs (violet = detected, green = solved)
-//   })
-// );
-
-// async function urlGetWarnings(prgCod) {
-//   return `http://comprasnet.gov.br/livre/Pregao/avisos1.asp?prgCod=${prgCod}&Origem=Avisos&Tipo=E`;
-// }
-
-// async function urlPostWarnings(co_uasg, numprp) {
-//   return `http://comprasnet.gov.br/livre/Pregao/lista_pregao.asp?Opc=0&txtlstUasg=&rdTpPregao=E&lstSrp=T&lstICMS=T&lstSituacao=5&lstTipoSuspensao=0&uf=&co_uasg=${co_uasg}&numprp=${numprp}&dt_entrega=&dt_abertura=`;
-// }
-
-// async function getPrgCode() {
-//   const dados = {
-//     pregao: "152023", //"372023", //req.params.numprpm,52023
-//     uasg: "985915", //"986563", //req.params.co_uasg927190
-//   };
-//   const prgCod = await axios.default
-//     .get(await urlPostWarnings(dados.uasg, dados.pregao))
-//     .then((html) => {
-//       const $ = chr.load(html.data);
-//       const result = $("a").attr("onclick");
-//       const prgCod_ = result.replace(/[a-z-'(),_;]/gim, "").trim();
-//       return prgCod_;
-//     })
-//     .catch((error) => {
-//       console.error(error.message);
-//     });
-//   return prgCod;
-// }
-
-// async function getUrlMain() {
-//   const url = await axios.default
-//     .get(
-//       `http://comprasnet.gov.br/livre/Pregao/avisos1.asp?prgCod=${await getPrgCode()}&Origem=Avisos&Tipo=E`
-//     )
-//     .then((html) => {
-//       const $ = chr.load(html.data);
-//       const result = $("#q20").attr("src");
-//       const response = "http://comprasnet.gov.br/livre/Pregao/" + result;
-//       return response.toString();
-//     })
-//     .catch((error) => {
-//       console.error(error.message);
-//       res.send("error: " + error);
-//     });
-//   return url;
-// }
 
 async function totalBiddings(dt_inicio, dt_fim) {
   const data = await axios.default
@@ -106,7 +27,6 @@ async function totalBiddings(dt_inicio, dt_fim) {
     });
   return data;
 }
-
 async function getDataBiddings(req, res) {
   //console.log(req.body);
   const { uasg, edital, pagina, dt_inicio, dt_fim } = req.body;
@@ -115,7 +35,6 @@ async function getDataBiddings(req, res) {
   const biddings = [];
   try {
     const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
-
     let dataBiddings = [];
     let data = [];
     let count = 1;
@@ -165,7 +84,6 @@ async function getDataBiddings(req, res) {
                 .match(
                   /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
                 );
-
               const biddings = {
                 _id: ID(),
                 government: [
@@ -252,17 +170,15 @@ async function getDataBiddings(req, res) {
                     .trim(),
                 },
               };
-
               data.push(biddings);
             });
-
           dataBiddings.push(...data);
           //console.log(dataBiddings,i);
           return dataBiddings;
         });
       data = dataBidding;
     }
-    console.log("finalizou", "dados licitação");
+    // console.log("finalizou", "dados licitação");
 
     for (let i = 0; i < data.length; i++) {
       const uasg = data[i].government[0].code_government;
@@ -273,7 +189,7 @@ async function getDataBiddings(req, res) {
 
       data[i].government[0].name = nameGovernment.replace(/\n/g, "").trim();
     }
-    console.log("finalizou", "dados orgao");
+    //console.log("finalizou", "dados orgao");
     for (let i = 0; i < data.length; i++) {
       const uasg = data[i].government[0].code_government;
       const pregao = data[i].process_data.bidding_notice;
@@ -295,8 +211,17 @@ async function getDataBiddings(req, res) {
       }
     }
     console.log("finalizou", "itens");
-    await extractGroupNumbers();
-    // console.log(JSON.stringify(result, null, 2));
+    //console.log(data[0]);
+    const pncp = await getDataPCNP(pagina);
+    pncp.map((item) => {
+      const result = {
+        _id: item._id,
+        process_data: item.process_data,
+        government: item.government,
+        reference_term: item.reference_term,
+      };
+      data.push(result);
+    });
     res
       .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
@@ -464,7 +389,7 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
 
     return { itens, totalItems, totalPages };
   } catch (error) {
-    console.error("Error", error.message);
+    //console.error("Error", error.message);
     return { error: error.message };
   }
 };
@@ -498,7 +423,6 @@ const htmlItemsBidding = async (uasg, pregao, pagina) => {
     return error.message;
   }
 };
-
 const totalPageAndItems = async (uasg, pregao, pagina) => {
   try {
     const $ = await htmlItemsBidding(uasg, pregao, 1).then((result) => {
@@ -557,244 +481,8 @@ const extractNameGovernment = async (uasg) => {
   ).replace(/\s\n/g, "");
   return nameGovernment;
 };
-
-`hcaptchaHabilitado: true
-  hcaptchaSiteKey:"b8bbded1-9d04-4ace-9952-b67cde081a7b"
-  recaptchaHabilitado: false
-  recaptchaSiteKey: "6LeFY7UUAAAAANq3IRQtuH9hQFugmh_OR9OlQHaW"
-  https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-fase-externa/v1/captcha/configuracao`;
-
-// function buildUrl(text) {
-//   return (
-//     "http://comprasnet.gov.br/livre/Pregao/" +
-//     text.substring(13, 47).replace(/["']/, "").trim()
-//   );
-// }
-
-// function extractData(html) {
-//   const $ = chr.load(html);
-//   const warnings = [];
-
-//   $("body").each((i, item) => {
-//     warnings.push({
-//       key: i + 1,
-//       title: $(item)
-//         .children(".tex3b")
-//         .text()
-//         .replace(/[0-9\t,;:"(\r\n|\n|\r)|//|]/g, "")
-//         .trim(),
-//       date: $(".mensagem2").text().trim(),
-//       msg: $(item)
-//         .children(".tex3")
-//         .text()
-//         .replace(/[\t:";(|\n|)|\ufffd|]/, "")
-//         .trim(),
-//     });
-//   });
-
-//   return warnings;
-// }
-
-// const Comprasnet = {
-//   getWarnings: async (req, res) => {
-//     try {
-//       const urls = await getUrlsWarning(await getUrlMain());
-//       const dataSetUrls = [];
-//       const warnings = [];
-
-//       for (const text of urls) {
-//         const url = buildUrl(text);
-//         dataSetUrls.push(url);
-//       }
-
-//       const htmlResponses = await Promise.all(
-//         dataSetUrls.map((url) => axios.get(url))
-//       );
-
-//       for (const html of htmlResponses) {
-//         const data = extractData(html.data);
-//         warnings.push(data.flatMap((item) => item));
-//       }
-
-//       res.send(warnings.flatMap((item) => item));
-//     } catch (error) {
-//       res.status(500).send({ error: error.message });
-//     }
-//   },
-//   loginComprasnet: async (req, res) => {
-//     const browser = await puppeteer.launch({ headless: false });
-//     const page = await browser.newPage();
-//     // await page.goto("https://www.gov.br/pt-br");
-//     await page.goto(
-//       "https://www.bec.sp.gov.br/fornecedor_ui/LoginFornecedor.aspx?chave="
-//     );
-
-//     // await Promise.all([
-//     //   page.waitForNavigation({ waitUntil: ["load", "networkidle2"] }),
-//     //   page.evaluate(() => {
-//     //     document
-//     //       .querySelector("#barra-sso")
-//     //       .shadowRoot.querySelector("#sso-status-bar")
-//     //       .querySelector(".status-indicator")
-//     //       .querySelector(".signed-out")
-//     //       .click();
-
-//     //   }),
-//     // ]);
-
-//     // await page.type("#accountId", "040.529.815-37", { delay: 100 }),
-//     // await page.click('button[name="action"]'),
-//     // await page.type("#password", "Fa281084@", { delay: 200 }),
-//     // await page.click('button[value="enterPassword"]', { delay: 100 });
-
-//     await page.type("#TextLogin", "15135292000147", { delay: 100 });
-//     await page.type("#TextSenha", "ERCOM2019", { delay: 100 });
-//     const chk = await page.waitForSelector("#chkAceite");
-//     await chk.click();
-//     await page.click("#Btn_Confirmar", { delay: 100 });
-//     //const btn = await page.waitForSelector("#aspnetForm");
-
-//     //await page.waitForSelector('iframe[src="https://newassets.hcaptcha.com/captcha/v1/7d69057/static/hcaptcha.html#frame=checkbox&id=04yljyqmjz9&host=sso.acesso.gov.br&sentry=true&reportapi=https%3A%2F%2Faccounts.hcaptcha.com&recaptchacompat=off&custom=false&hl=pt-BR&tplinks=on&sitekey=93b08d40-d46c-400a-ba07-6f91cda815b9&theme=light&origin=https%3A%2F%2Fsso.acesso.gov.br&size=invisible"]')
-//     // await page.solveRecaptchas()
-
-//     // const url = await page.evaluate(async () => {
-//     //   return document.location.href;
-//     // });
-
-//     const url = await Promise.all([
-//       page.waitForNavigation({
-//         waitUntil: ["load", "networkidle2"],
-//         timeout: 500000,
-//       }),
-//       page.waitForSelector("#form1"),
-//     ]);
-
-//     const uri = await page.evaluate(() => {
-//       let uri = document.location.href;
-//       return uri;
-//     });
-//     // console.log(uri);
-//     // url[3].call();
-//     //const cookies = await page.cookies();
-//     await browser.close();
-//     // const ck = JSON.stringify(cookies[0].value)
-//     // console.log(cookies);
-//     // await page.close();
-
-//     //   const response = await page.cookies();
-//     //  // page.waitForRequest((request) => console.log(request.url()));
-//     //   const cookie = []
-//     //  await page.cookies.forEach(async(ck) =>{
-//     //     cookie.push(ck.value)
-
-//     //  })
-//     // console.log( page.cookies);
-//     // console.log(cookies.value);
-//     //aspnetForm
-//     // console.log(url);
-//     // await Promise.all([
-//     //   page.waitForNavigation(),
-//     //   page.waitForSelector('div[class="button-submit button"]', {timeout: 150000}),
-//     //   //  page.click('.button')
-//     // ])
-//     // await page.screenshot({ path: 'response.png', fullPage: true })
-
-//     // await page.goto(config.pageUrl);
-//     //await Promise.all([page.waitForNavigation(),page.click('#h-captcha-response-0k1a0adf3bo')]);
-//     //await page.screenshot({ path: 'response.png', fullPage: true })
-//     //id=h-captcha-response-0k1a0adf3bo
-
-//     res.send({ url: uri });
-//   },
-// };
-
-// async function recaptchacompat(apikey) {
-//   const formData = {
-//     form: {
-//       method: "userrecaptcha",
-//       googlekey: config.sitekey,
-//       key: apikey,
-//       pageurl: config.pageUrl,
-//       json: 1,
-//     },
-//   };
-//   const response = await axios.default.post(config.apiSubmitUrl, formData);
-//   const idcaptcha = response.data;
-//   console.log(idcaptcha);
-//   return idcaptcha;
-// }
-
-async function extractGroupNumbers() {
-  const html = await axios.default
-    .get(
-      "http://comprasnet.gov.br/ConsultaLicitacoes/download/download_editais_detalhe.asp?coduasg=158516&modprp=5&numprp=1002021&pagina=2"
-    )
-    .then((response) => response.data);
-  //console.log(html)
-  const $ = chr.load(html);
-  //const $ = data(".tex3b + table > tbody > tr");
-  //console.log($);
-  const groups = [];
-  let currentGroup = "";
-  const txt = String($(".tex3b").text()).includes("Grupos");
-  //console.log(txt);
-  if (txt) {
-    //console.log($("td"));
-    $(".tex3b").each((index, element) => {
-      const groupText = $(element).text().trim();
-      if (groupText.startsWith("G")) {
-        // console.log("passou");
-        console.log($(element).text());
-        console.log($(element).nextUntil("span.tex3").text());
-
-        // if (currentGroup) {
-        //   groups.push({
-        //     group: currentGroup,
-        //     numbers: groupNumbers,
-        //   });
-        // }
-
-        // currentGroup = groupText;
-        // var groupNumbers = [];
-      } else {
-        //console.log($(element.tagName()));
-        // const numberMatch = $(element)
-        //   .nextUntil("span.tex3b")
-        //   .filter("span.tex3")
-        //   .text()
-        //   .match(/\d+/);
-      }
-    });
-  }
-
-  // console.log("está aqui", numberMatch);
-  //   //   if (numberMatch) {
-  //   //     const number = parseInt(numberMatch[0]);
-  //   //     groupNumbers.push({
-  //   //       number: number,
-  //   //       text: $(element)
-  //   //         .nextUntil("span.tex3b")
-  //   //         .filter("span.tex3")
-  //   //         .text()
-  //   //         .trim(),
-  //   //     });
-  //   //   }
-  //   // }
-  // });
-
-  // if (currentGroup) {
-  //   //console.log("currentGroup", currentGroup);
-  //   groups.push({
-  //     group: currentGroup,
-  //     numbers: groupNumbers,
-  //   });
-  // }
-  //console.log(groups);
-  return {}; //;
-}
-
 async function registerProposalComprasnet(req, res) {
-  console.log(req.body);
+  // console.log(req.body);
   try {
     const url =
       "https://mdw.minha.effecti.com.br/api-integracao/v1/proposta/comprasnet";
@@ -819,7 +507,7 @@ async function registerProposalComprasnet(req, res) {
         return res.status(200).json(response.data);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        //console.log(err.response.data);
         return res.status(400).json(err.response);
       });
   } catch (error) {
@@ -827,13 +515,228 @@ async function registerProposalComprasnet(req, res) {
     res.status(500).json(error);
   }
 }
+//RETORNA TODAS AS LICITAÇÕES
+async function getBiddingsNoticesPNCP(pagina) {
+  try {
+    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=10&status=recebendo_proposta&modalidades=6|8`;
+    const response = await axios.default
+      .get(url)
+      .then((result) => {
+        //console.log(result)
+        const data = {
+          items: result.data.items,
+          total: result.data.total,
+        };
+        return data;
+      })
+      .catch((error) => {
+        console.log(error);
+        return error.message;
+      });
+    const total = response.total;
+    // console.log(response.items);
+    const biddings = response.items.map((item) => {
+      //const items_biddings = await axios.get();
+      return {
+        cnpj: item.orgao_cnpj,
+        edital: String(item.title)
+          .replace(/[^0-9]/gi, "")
+          .trim(),
+        orgao: item.orgao_nome,
+        numero_sequencial: item.numero_sequencial,
+      };
+    });
+    // console.log(biddings);
+    return { biddings, total };
+  } catch (error) {
+    console.log(error);
+  }
+}
+//RETORNA AS INFORMAÇÕES GERAIS DOS EDITAIS
+async function getDataBiddingsPNCP(cnpj, code) {
+  try {
+    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}`;
+    const data = await axios.default
+      .get(url)
+      .then((result) => {
+        return result.data;
+      })
+      .catch((error) => {
+        //console.log(error);
+        return error.message;
+      });
+    return data;
+  } catch (error) {
+    //console.log(error);
+    return error;
+  }
+}
+//RETORNA A QUANTIDADE DE ITENS
+async function getBiddingsTotalItemsPNCP(cnpj, code) {
+  try {
+    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}/itens/quantidade`;
+    const totalItens = await axios.default
+      .get(url)
+      .then((result) => {
+        return result.data;
+      })
+      .catch((error) => {
+        //console.log(error);
+        return error.message;
+      });
+    return totalItens;
+  } catch (error) {
+    //console.log(error);
+    return error;
+  }
+}
+//RETORNA OS ITENS
+async function getBiddingsItemsPNCP(cnpj, code, amoutItems) {
+  try {
+    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}/itens?pagina=1&tamanhoPagina=${amoutItems}`;
+    const Items = await axios.default
+      .get(url)
+      .then((result) => {
+        return result.data;
+      })
+      .catch((error) => {
+        console.log(error);
+        return error.message;
+      });
+    return Items;
+  } catch (error) {
+    console.log(error);
+  }
+}
+const getDataPCNP = async (pagina) => {
+  //console.log(pagina);
+  const data = await getBiddingsNoticesPNCP(pagina);
+  const dataBidding = data.biddings.slice(0, 10); // Limita a 10 itens
+  const keywords = [
+    "ELETRODO",
+    "ARAME MIG",
+    "ELETRODOS",
+    "SOLDA",
+    "SOLDAGEM",
+    "DISCO DE CORTE",
+    "PARAFUSADEIRA",
+    "TOCHA",
+    "COMPRESSOR",
+    "REGULADOR",
+    "CILINDRO",
+    "FURADEIRA",
+  ];
+  const itensBidding = [];
+  const formattedBiddings = await Promise.all(
+    dataBidding.map(async (bidding) => {
+      const { cnpj, numero_sequencial } = bidding;
+      const element = await getDataBiddingsPNCP(cnpj, numero_sequencial);
+      const totalItens = await getBiddingsTotalItemsPNCP(
+        cnpj,
+        numero_sequencial
+      );
+      const itens = await getBiddingsItemsPNCP(
+        cnpj,
+        numero_sequencial,
+        totalItens
+      );
+      const items = itens.map((item) => {
+        const descriptionItems = [];
+        descriptionItems.push(String(item.descricao));
+        const filteredDescriptionItems = descriptionItems.filter((item) => {
+          return keywords.some((keyword) =>
+            item.toUpperCase().includes(keyword)
+          );
+        });
+        if (filteredDescriptionItems.length <= 0) return;
+        const filterItens = {
+          _id: ID(),
+          cod: item.numeroItem,
+          lote: "",
+          amount: item.quantidade,
+          unit: item.unidadeMedida,
+          description: item.descricao,
+          brand: "",
+          model: "",
+          unitary_value: item.valorUnitarioEstimado,
+          value_reference: 0,
+          winner: "false",
+          item_balance: 0,
+        };
+        itensBidding.push(filterItens);
+      });
+      const biddings = {
+        _id: ID(),
+        process_data: {
+          status: "Cadastrar proposta",
+          type_dispute: "",
+          modality: element.modalidadeNome,
+          portal: "PNCP",
+          n_process: element.processo,
+          bidding_notice: element.numeroCompra + element.anoCompra,
+          date_finish: String(element.dataEncerramentoProposta).slice(0, 10),
+          date_init: String(element.dataAberturaProposta).slice(0, 10),
+          hours_finish: String(element.dataEncerramentoProposta).slice(11, 17),
+          object: element.objetoCompra,
+        },
+        government: [
+          {
+            _id: ID(),
+            name: element.orgaoEntidade.razaoSocial,
+            cnpj: element.orgaoEntidade.cnpj,
+            code_government: element.unidadeOrgao.codigoUnidade,
+            manager: "true",
+            adress: [
+              {
+                id: ID(),
+                type_address: "LICITACAO",
+                street: "",
+                number: "",
+                district: "",
+                zip_code: "",
+                uf: element.unidadeOrgao.ufSigla,
+                city: element.unidadeOrgao.municipioNome,
+              },
+            ],
+            contact: [
+              {
+                id: ID(),
+                tipo: "TEL",
+                name: "",
+                sector: "",
+                contact: "",
+              },
+            ],
+          },
+        ],
+        reference_term: {
+          validity: "",
+          guaranteed: "",
+          deadline: "",
+          itens: itensBidding,
+        },
+      };
+      return {
+        biddings,
+        description: itensBidding.map((item) => item.description).join(" "), // Concatena as descrições dos itens
+      };
+    })
+  );
+  return formattedBiddings.map(({ biddings }) => ({ ...biddings }));
+};
 
 module.exports = {
   getDataBiddings,
   getItemsBiddings,
   registerProposalComprasnet,
 };
+
 //SITE KEY
 //93b08d40-d46c-400a-ba07-6f91cda815b9
 //93b08d40-d46c-400a-ba07-6f91cda815b9
 //https://newassets.hcaptcha.com/captcha/v1/7d69057/static/hcaptcha.html#frame=checkbox&id=04yljyqmjz9&host=sso.acesso.gov.br&sentry=true&reportapi=https%3A%2F%2Faccounts.hcaptcha.com&recaptchacompat=off&custom=false&hl=pt-BR&tplinks=on&sitekey=93b08d40-d46c-400a-ba07-6f91cda815b9&theme=light&origin=https%3A%2F%2Fsso.acesso.gov.br&size=invisible
+//`hcaptchaHabilitado: true
+// hcaptchaSiteKey:"b8bbded1-9d04-4ace-9952-b67cde081a7b"
+// recaptchaHabilitado: false
+// recaptchaSiteKey: "6LeFY7UUAAAAANq3IRQtuH9hQFugmh_OR9OlQHaW"
+// https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-fase-externa/v1/captcha/configuracao`;

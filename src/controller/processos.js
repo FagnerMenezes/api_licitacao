@@ -139,10 +139,12 @@ exports.patch = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  //console.log(req.params.id);
   try {
     const Processos = await Processo.deleteOne({
       _id: ObjectId(req.params.id),
     }).then((result) => {
+      console.log(result);
       return result;
     });
     await res.status(200).json(Processos);
