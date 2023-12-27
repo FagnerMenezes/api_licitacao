@@ -485,23 +485,18 @@ const totalPageAndItems = async (uasg, pregao, pagina) => {
 const extractNameGovernment = async (uasg) => {
   let nameGovernment = "";
   //const url = `http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp`;
-
   let headersList = {
     Accept: "*/*",
     "Content-Type": "application/x-www-form-urlencoded",
   };
-
   let bodyContent = `codigo=${uasg}`;
-
   let reqOptions = {
     url: "http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp",
     method: "POST",
     headers: headersList,
     data: bodyContent,
   };
-
   let response = await axios.request(reqOptions);
-
   const $ = chr.load(response.data);
   nameGovernment = String(
     $(".td").find("tr:nth-child(2)>td:nth-child(2)").text()
@@ -520,7 +515,6 @@ async function registerProposalComprasnet(req, res) {
       "Content-Type": "application/json",
     };
     const bodyContent = req.body;
-    //console.log(bodyContent);
     const reqOptions = {
       url: url,
       method: "POST",
