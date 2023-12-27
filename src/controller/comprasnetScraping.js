@@ -2,6 +2,7 @@ const axios = require("axios");
 const chr = require("cheerio");
 const { v4: ID } = require("uuid");
 const { StatusCodes } = require("http-status-codes");
+const { getDataBiddingPortalBec } = require("./getDataBiddingBec");
 const token =
   "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
 
@@ -211,21 +212,33 @@ async function getDataBiddings(req, res) {
       }
     }
     console.log("finalizou", "itens");
-    //console.log(data[0]);
-    const pncp = await getDataPCNP(pagina);
-    pncp.map((item) => {
-      const result = {
-        _id: item._id,
-        process_data: item.process_data,
-        government: item.government,
-        reference_term: item.reference_term,
-      };
-      data.push(result);
-    });
+
+    if (uasg === "" && edital === "") {
+      const pncp = await getDataPCNP(pagina);
+      pncp.map((item) => {
+        const result = {
+          _id: item._id,
+          process_data: item.process_data,
+          government: item.government,
+          reference_term: item.reference_term,
+        };
+        data.push(result);
+      });
+    }
+
+    if (pagina === 1 && uasg === "") {
+      const dataBiddingBec = await getDataBiddingPortalBec();
+      console.log(pagina);
+      dataBiddingBec.map((item) => {
+        data.push({ ...item });
+      });
+    }
+
     res
       .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
   } catch (error) {
+    console.log(error.message);
     res.status(404).json({ error: error.message });
   }
 }

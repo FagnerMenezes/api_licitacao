@@ -35,8 +35,8 @@ async function getItemsBec(url, localHost) {
       description: $(el).find($(".descricao")).text(),
       brand: "",
       model: "",
-      unitary_value: { $numberDecimal: 0 },
-      value_reference: { $numberDecimal: 0 },
+      unitary_value: { $numberDecimal: "0" },
+      value_reference: { $numberDecimal: "0" },
       winner: "false",
       item_balance: 0,
       link_description_item: `http://${localHost}:21052/bec/description-item/${codeItem}`,
@@ -46,34 +46,6 @@ async function getItemsBec(url, localHost) {
   });
   return items;
 }
-
-// const getChaveBec = async () => {
-//   const browser = await puppeteer.launch({ headless: false });
-//   const page = await browser.newPage();
-//   await page.goto(
-//     "https://www.bec.sp.gov.br/fornecedor_ui/LoginFornecedor.aspx?chave="
-//   );
-
-//   await page.type("#TextLogin", "15135292000147", { delay: 100 });
-//   await page.type("#TextSenha", "ERCOM2019", { delay: 100 });
-//   const chk = await page.waitForSelector("#chkAceite");
-//   await chk.click();
-//   await page.click("#Btn_Confirmar", { delay: 100 });
-//   const url = await Promise.all([
-//     page.waitForNavigation({
-//       waitUntil: ["load", "networkidle2"],
-//       timeout: 500000,
-//     }),
-//     page.waitForSelector("#form1"),
-//   ]);
-
-//   const uri = await page.evaluate(() => {
-//     let uri = document.location.href;
-//     return uri;
-//   });
-//   await browser.close();
-//   return { url: uri };
-// };
 
 const Bec = {
   getChat: async (req, res) => {
