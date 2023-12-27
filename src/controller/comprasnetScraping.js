@@ -35,6 +35,20 @@ async function getDataBiddings(req, res) {
   let totalPage = "";
   const biddings = [];
   try {
+    const keywords = [
+      "ELETRODO",
+      "ARAME MIG",
+      "ELETRODOS",
+      "SOLDA",
+      "SOLDAGEM",
+      "DISCO DE CORTE",
+      "PARAFUSADEIRA",
+      "TOCHA",
+      "COMPRESSOR",
+      "REGULADOR",
+      "CILINDRO",
+      "FURADEIRA",
+    ];
     const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
     let dataBiddings = [];
     let data = [];
@@ -212,28 +226,17 @@ async function getDataBiddings(req, res) {
       }
     }
     console.log("finalizou", "itens");
-
-    if (uasg === "" && edital === "") {
-      const pncp = await getDataPCNP(pagina);
-      pncp.map((item) => {
-        const result = {
-          _id: item._id,
-          process_data: item.process_data,
-          government: item.government,
-          reference_term: item.reference_term,
-        };
-        data.push(result);
-      });
-    }
-
-    if (pagina === 1 && uasg === "") {
-      const dataBiddingBec = await getDataBiddingPortalBec();
-      console.log(pagina);
-      dataBiddingBec.map((item) => {
-        data.push({ ...item });
-      });
-    }
-
+    //console.log(data[0]);
+    const pncp = await getDataPCNP(pagina);
+    pncp.map((item) => {
+      const result = {
+        _id: item._id,
+        process_data: item.process_data,
+        government: item.government,
+        reference_term: item.reference_term,
+      };
+      data.push(result);
+    });
     res
       .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
@@ -495,7 +498,7 @@ const extractNameGovernment = async (uasg) => {
   return nameGovernment;
 };
 async function registerProposalComprasnet(req, res) {
-  // console.log(req.body);
+  console.log(req.body);
   try {
     const url =
       "https://mdw.minha.effecti.com.br/api-integracao/v1/proposta/comprasnet";
@@ -520,7 +523,7 @@ async function registerProposalComprasnet(req, res) {
         return res.status(200).json(response.data);
       })
       .catch((err) => {
-        //console.log(err.response.data);
+        console.log(err.response.data);
         return res.status(400).json(err.response);
       });
   } catch (error) {
@@ -529,17 +532,40 @@ async function registerProposalComprasnet(req, res) {
   }
 }
 //RETORNA TODAS AS LICITAÇÕES
-async function getBiddingsNoticesPNCP(pagina) {
+async function getBiddingsNoticesPNCP(
+  pagina,
+  pageLength,
+  dateInit,
+  dateFinish
+) {
   try {
-    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=10&status=recebendo_proposta&modalidades=6|8`;
+    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=${pageLength}&status=recebendo_proposta&modalidades=6|8`;
     const response = await axios.default
       .get(url)
       .then((result) => {
-        //console.log(result)
+        const dateInitial =
+          String(dateInit).substring(6, 10) +
+          "-" +
+          String(dateInit).substring(3, 5) +
+          "-" +
+          String(dateInit).substring(0, 2);
+        const dateFinaly =
+          String(dateFinish).substring(6, 10) +
+          "-" +
+          String(dateFinish).substring(3, 5) +
+          "-" +
+          String(dateFinish).substring(0, 2);
+        const dateFilter = [dateInitial, dateFinaly];
+        const dataBidding = result.data.items.filter((item) =>
+          dateFilter.some((date) =>
+            String(item.data_publicacao_pncp).slice(0, 10).includes(date)
+          )
+        );
         const data = {
-          items: result.data.items,
+          items: dataBidding,
           total: result.data.total,
         };
+        //console.log(data.items);
         return data;
       })
       .catch((error) => {
@@ -572,6 +598,7 @@ async function getDataBiddingsPNCP(cnpj, code) {
     const data = await axios.default
       .get(url)
       .then((result) => {
+        // console.log(result.data);
         return result.data;
       })
       .catch((error) => {
@@ -591,6 +618,7 @@ async function getBiddingsTotalItemsPNCP(cnpj, code) {
     const totalItens = await axios.default
       .get(url)
       .then((result) => {
+        //console.log(result.data);
         return result.data;
       })
       .catch((error) => {
@@ -613,7 +641,7 @@ async function getBiddingsItemsPNCP(cnpj, code, amoutItems) {
         return result.data;
       })
       .catch((error) => {
-        console.log(error);
+        //console.log(error);
         return error.message;
       });
     return Items;
@@ -621,121 +649,131 @@ async function getBiddingsItemsPNCP(cnpj, code, amoutItems) {
     console.log(error);
   }
 }
-const getDataPCNP = async (pagina) => {
-  //console.log(pagina);
-  const data = await getBiddingsNoticesPNCP(pagina);
-  const dataBidding = data.biddings.slice(0, 10); // Limita a 10 itens
-  const keywords = [
-    "ELETRODO",
-    "ARAME MIG",
-    "ELETRODOS",
-    "SOLDA",
-    "SOLDAGEM",
-    "DISCO DE CORTE",
-    "PARAFUSADEIRA",
-    "TOCHA",
-    "COMPRESSOR",
-    "REGULADOR",
-    "CILINDRO",
-    "FURADEIRA",
-  ];
-  const itensBidding = [];
-  const formattedBiddings = await Promise.all(
-    dataBidding.map(async (bidding) => {
-      const { cnpj, numero_sequencial } = bidding;
-      const element = await getDataBiddingsPNCP(cnpj, numero_sequencial);
-      const totalItens = await getBiddingsTotalItemsPNCP(
-        cnpj,
-        numero_sequencial
-      );
-      const itens = await getBiddingsItemsPNCP(
-        cnpj,
-        numero_sequencial,
-        totalItens
-      );
-      const items = itens.map((item) => {
-        const descriptionItems = [];
-        descriptionItems.push(String(item.descricao));
-        const filteredDescriptionItems = descriptionItems.filter((item) => {
-          return keywords.some((keyword) =>
-            item.toUpperCase().includes(keyword)
-          );
+const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
+  try {
+    const data = await getBiddingsNoticesPNCP(
+      pagina,
+      pageLength,
+      dateInit,
+      dateFinish
+    );
+    const total = Math.ceil(parseInt(data.total) / 10);
+    const dataBidding = data.biddings.slice(0, 10);
+    //console.log("total de licitaçoes:" + dataBidding.length); // Limita a 10 itens
+    const formattedBiddings = await Promise.all(
+      dataBidding.map(async (bidding) => {
+        const { cnpj, numero_sequencial } = bidding;
+        const element = await getDataBiddingsPNCP(cnpj, numero_sequencial);
+        //console.log(element);
+        const totalItens = await getBiddingsTotalItemsPNCP(
+          cnpj,
+          numero_sequencial
+        );
+        const itens = await getBiddingsItemsPNCP(
+          cnpj,
+          numero_sequencial,
+          totalItens
+        ).catch((err) => {
+          console.log(err);
         });
-        if (filteredDescriptionItems.length <= 0) return;
-        const filterItens = {
-          _id: ID(),
-          cod: item.numeroItem,
-          lote: "",
-          amount: item.quantidade,
-          unit: item.unidadeMedida,
-          description: item.descricao,
-          brand: "",
-          model: "",
-          unitary_value: item.valorUnitarioEstimado,
-          value_reference: 0,
-          winner: "false",
-          item_balance: 0,
-        };
-        itensBidding.push(filterItens);
-      });
-      const biddings = {
-        _id: ID(),
-        process_data: {
-          status: "Cadastrar proposta",
-          type_dispute: "",
-          modality: element.modalidadeNome,
-          portal: "PNCP",
-          n_process: element.processo,
-          bidding_notice: element.numeroCompra + element.anoCompra,
-          date_finish: String(element.dataEncerramentoProposta).slice(0, 10),
-          date_init: String(element.dataAberturaProposta).slice(0, 10),
-          hours_finish: String(element.dataEncerramentoProposta).slice(11, 17),
-          object: element.objetoCompra,
-        },
-        government: [
-          {
+        // console.log("total de itens:" + itens.length);
+        const items = itens.map((item) => {
+          const filterItens = {
             _id: ID(),
-            name: element.orgaoEntidade.razaoSocial,
-            cnpj: element.orgaoEntidade.cnpj,
-            code_government: element.unidadeOrgao.codigoUnidade,
-            manager: "true",
-            adress: [
-              {
-                id: ID(),
-                type_address: "LICITACAO",
-                street: "",
-                number: "",
-                district: "",
-                zip_code: "",
-                uf: element.unidadeOrgao.ufSigla,
-                city: element.unidadeOrgao.municipioNome,
-              },
-            ],
-            contact: [
-              {
-                id: ID(),
-                tipo: "TEL",
-                name: "",
-                sector: "",
-                contact: "",
-              },
-            ],
+            cod: item.numeroItem,
+            lote: "",
+            amount: item.quantidade,
+            unit: item.unidadeMedida,
+            description: item.descricao,
+            brand: "",
+            model: "",
+            unitary_value: item.valorUnitarioEstimado,
+            value_reference: 0,
+            winner: "false",
+            item_balance: 0,
+          };
+          return filterItens;
+        });
+        const biddings = {
+          _id: ID(),
+          process_data: {
+            status: "Cadastrar proposta",
+            type_dispute: "",
+            modality:
+              element.modalidadeId === 8
+                ? "DL"
+                : element.modalidadeId === 6
+                ? "PE"
+                : "PE",
+            portal: checkPortalPncp(element.usuarioNome),
+            n_process: element.processo,
+            bidding_notice: element.numeroCompra + element.anoCompra,
+            date_finish: String(element.dataEncerramentoProposta).slice(0, 10),
+            date_init: String(element.dataAberturaProposta).slice(0, 10),
+            hours_finish: String(element.dataEncerramentoProposta).slice(
+              11,
+              17
+            ),
+            object: element.objetoCompra,
           },
-        ],
-        reference_term: {
-          validity: "",
-          guaranteed: "",
-          deadline: "",
-          itens: itensBidding,
-        },
-      };
-      return {
-        biddings,
-        description: itensBidding.map((item) => item.description).join(" "), // Concatena as descrições dos itens
-      };
-    })
-  );
-  return formattedBiddings.map(({ biddings }) => ({ ...biddings }));
+          government: [
+            {
+              _id: ID(),
+              name: element.orgaoEntidade.razaoSocial,
+              cnpj: element.orgaoEntidade.cnpj,
+              code_government: element.unidadeOrgao.codigoUnidade,
+              manager: "true",
+              address: [
+                {
+                  id: ID(),
+                  type_address: "LICITACAO",
+                  street: "",
+                  number: "",
+                  district: "",
+                  zip_code: "",
+                  uf: element.unidadeOrgao.ufSigla,
+                  city: element.unidadeOrgao.municipioNome,
+                  complement: "",
+                },
+              ],
+              contact: [
+                {
+                  id: ID(),
+                  tipo: "TEL",
+                  name: "",
+                  sector: "",
+                  contact: "",
+                },
+              ],
+            },
+          ],
+          reference_term: {
+            validity: "",
+            guaranteed: "",
+            deadline: "",
+            itens: items,
+          },
+        };
+        return {
+          biddings,
+        };
+      })
+    );
+    return {
+      data: formattedBiddings.map(({ biddings }) => ({ ...biddings })),
+      totalPagesPncp: total,
+    };
+  } catch (error) {
+    console.log(error);
+    return { error };
+  }
+};
+const checkPortalPncp = (portal) => {
+  if (portal === "Compras.gov.br") {
+    return "COMPRASNET";
+  } else {
+    return portal;
+  }
 };
 
 module.exports = {
