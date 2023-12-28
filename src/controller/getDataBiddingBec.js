@@ -451,11 +451,7 @@ const getDataBiddingBec = async (oc) => {
     //console.log("DADOS PREGÃƒO:", data);
     return data;
   });
-
   return dataBidding;
-  // });
-  //console.log(data);
-  //return data;
 };
 
 ////OBTÃ‰M OS ITENS RELACIONADOS AO PREGÃƒO NO PORTAL BEC
