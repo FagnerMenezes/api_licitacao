@@ -1,5 +1,5 @@
 const axios = require("axios");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra");
 const cheerio = require("cheerio");
 const { v4: ID } = require("uuid");
 
@@ -11,54 +11,51 @@ const getDataBiddingPortalBec = async (req, res) => {
       const filterDataSetBec = dataFilter.filter((item) =>
         item?.type_dispute?.includes(typeBidding)
       );
-      for (const item of filterDataSetBec) {
+
+      let promises = filterDataSetBec.map(async (item) => {
+        console.log("inicio", item.type_dispute);
         const dataItem = await processFunction(item.oc);
-        data.push(dataItem);
-      }
-      // return filterDataSetBec;
+        console.log("fim", item.type_dispute);
+        return dataItem;
+      });
+
+      let dataItem = await Promise.all(promises);
+      dataItem.map((item) => {
+        data.push(item);
+      });
+
+      // for (const item of filterDataSetBec) {
+      //   //console.log("inicio", item.type_dispute);
+      //   const dataItem = await processFunction(item.oc);
+      //   data.push(dataItem);
+      //  // console.log("fim", item.type_dispute);
+      // }
     };
     await Promise.all([
       processDataSet("PE", getDataBiddingBec),
       processDataSet("CV", processDataSetInvitationPortalBec),
       processDataSet("DL", getDispensaDataFromTheBecPortal),
     ]);
-
+    // console.log(data);
     return data;
   } catch (error) {
-    //res.status(404).send({ message: error.message });
     console.log(error);
-    return [];
+    return error;
   }
 };
 
 const getChaveBec = async () => {
-  const browser = await puppeteer.default.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.goto(
-    "https://www.bec.sp.gov.br/fornecedor_ui/LoginFornecedor.aspx?chave="
+  const response = await axios.default.get(
+    "https://i5qjt36nld.execute-api.us-east-1.amazonaws.com/chavebec"
   );
-
-  await page.type("#TextLogin", "15135292000147", { delay: 200 });
-  await page.type("#TextSenha", "ERCOM2019", { delay: 200 });
-
-  const btnAceite = await page.waitForSelector("#chkAceite");
-  await btnAceite.click();
-  const btn = await page.waitForSelector("#Btn_Confirmar");
-  await btn.click();
-  await page.waitForSelector(
-    "#ctl00_ContentPlaceHolder1_WUC_Console_ResultadoPesquisaOC1_UpdatePanelAttachments"
-  );
-  const url = page.url() + "&CO=0";
-  //console.log(url);
-  await browser.close();
+  const url = response.data;
   return url;
 };
-//PEGA TODAS A LICITAÇÕES NOVAS NO PORTAL BEC
-const getListNewBiddingsPortalBec = async () => {
-  // const keyBec = "30264f5be98c1677db5dd43582b9a2";
-  const url = await getChaveBec(); // `https://www.bec.sp.gov.br/fornecedor_ui/Console/Console_OC.aspx?chave=${keyBec}&CO=0`;
-  const response = await axios.default.get(url).then((html) => html.data);
 
+//PEGA TODAS A LICITAÃ‡Ã•ES NOVAS NO PORTAL BEC
+const getListNewBiddingsPortalBec = async () => {
+  const url = await getChaveBec();
+  const response = await axios.default.get(url).then((html) => html.data);
   const $ = cheerio.load(response);
   const tableRows = Array.from(
     $(".cssGridOCConsole > tbody tr").each((i, el) => el)
@@ -69,7 +66,11 @@ const getListNewBiddingsPortalBec = async () => {
       $(row.children[7]).text().trim().substring(0, 7).trim()
     );
     const type_Dispute =
-      typeDispute === "Convite" ? "CV" : typeDispute === "Pregão" ? "PE" : "DL";
+      typeDispute === "Convite"
+        ? "CV"
+        : typeDispute === "PregÃ£o"
+        ? "PE"
+        : "DL";
 
     const data = {
       oc: $(row.children[6]).text().trim(),
@@ -79,48 +80,27 @@ const getListNewBiddingsPortalBec = async () => {
     };
     return data;
   });
-  //console.log(dataSet);
   const dateDay = new Date().getDate();
   const dateMoth = new Date().getMonth() + 1;
-  //console.log("mes corente", dateMoth);
   const dataSetFilter = dataSet.filter(
     (item) =>
-      parseInt(item?.date_dispute.substring(0, 2).trim()) >= dateDay + 1 &&
-      parseInt(item?.date_dispute.substring(0, 2).trim()) <= dateDay + 2 &&
+      parseInt(item?.date_dispute.substring(0, 2).trim()) >= dateDay &&
+      parseInt(item?.date_dispute.substring(0, 2).trim()) <= dateDay + 1 &&
       parseInt(item?.date_dispute.substring(3, 5).trim()) === dateMoth
   );
-  // console.log(dataSetFilter);
   return dataSetFilter;
 };
 
 const getUrlInvitationPortalBec = async (oc) => {
-  const browser = await puppeteer.default.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.goto(
-    "https://www.bec.sp.gov.br/BEC_Convite_UI/ui/BEC_CV_Pesquisa.aspx?chave="
-  );
-  const btn = await page.waitForSelector("#ctl00_c_area_conteudo_bt_Pesquisa");
-  await page.type(
-    "#ctl00_c_area_conteudo_wuc_filtroPesquisaOc1_c_tbNumeroOc",
-    oc
-  );
-  await btn.click();
-
-  const btnOc = await page.waitForSelector(
-    "#ctl00_c_area_conteudo_grdvOC_ctl02_Numero"
-  );
-  await btnOc.click();
-  await page.waitForSelector("#topMenu").catch((err) => {
-    console.log(err);
+  const urlAws =
+    "https://8o3z8sxdh9.execute-api.us-east-1.amazonaws.com/urlconvite";
+  const { data } = await axios.default.post(urlAws, {
+    oc: oc,
   });
-  const url = await page.evaluate(() => {
-    return window.location.href;
-  });
-  //console.log("retornoda url convite");
+  const url = data.url;
   const Links = await axios.default.get(url).then((html) => {
     const dom = cheerio.load(html.data);
     const dataset = [];
-
     dom("a", "#topMenu").each((i, link) => {
       dataset.push({
         key: i,
@@ -131,15 +111,11 @@ const getUrlInvitationPortalBec = async (oc) => {
 
     return dataset;
   });
-
   const linkItems = Links.filter((item) => item.text === "Convite");
-  await browser.close();
-  //console.log(Links);
-  //const urlConvite = l
   return linkItems[0].url;
 };
 
-//PEGA OS DADOS DO ÓRGÃO NO PORTAL BEC
+//PEGA OS DADOS DO Ã“RGÃƒO NO PORTAL BEC
 const getDataUgePortalBec = async (n_uge) => {
   const url = `https://www.bec.sp.gov.br/BECSP/UGE/UGEResultado.aspx?chave=&CdUge=${n_uge}`;
   const response = await axios.default.get(url).then((html) => html.data);
@@ -203,7 +179,7 @@ const getItemsInvitationBec = async (url) => {
       }
     );
 
-    const itemsFilter = items.filter((item) => item.code !== "Código");
+    const itemsFilter = items.filter((item) => item.code !== "CÃ³digo");
     return { items: itemsFilter, dates };
   });
   return response;
@@ -276,15 +252,13 @@ const getInvitationDataFromTheBecPortal = async (oc) => {
   return dataBidingBec;
 };
 
-//OBTÉM OS DADOS RELACIONADOS A CONVITE NO PORTAL BEC
+//OBTÃ‰M OS DADOS RELACIONADOS A CONVITE NO PORTAL BEC
 const processDataSetInvitationPortalBec = async (oc) => {
   const dataBidding = await getInvitationDataFromTheBecPortal(oc);
-  // const items = await getTheItemsFromInvitationInPortalBec(oc, "1");
-  //dataBidding.reference_term.itens.push(items);
   return dataBidding;
 };
 
-//OBTÉM OS DADOS RELACIONADOS Ao PREGÃO NO PORTAL BEC
+//OBTÃ‰M OS DADOS RELACIONADOS Ao PREGÃƒO NO PORTAL BEC
 const getDataBiddingBec = async (oc) => {
   const url = `https://www.bec.sp.gov.br/bec_pregao_UI/OC/Pregao_OC_Item.aspx?chave=&OC=${oc}`;
   const n_uge = oc.substring(0, 6);
@@ -446,7 +420,7 @@ const getDataBiddingBec = async (oc) => {
           address: [
             {
               _id: ID(),
-              type_address: "LICITAÇÃO",
+              type_address: "LICITAÃ‡ÃƒO",
               street: Info_Government.street,
               number: Info_Government.number,
               district: Info_Government.district,
@@ -474,7 +448,7 @@ const getDataBiddingBec = async (oc) => {
         itens: Items,
       },
     };
-    //console.log("DADOS PREGÃO:", data);
+    //console.log("DADOS PREGÃƒO:", data);
     return data;
   });
 
@@ -484,7 +458,7 @@ const getDataBiddingBec = async (oc) => {
   //return data;
 };
 
-////OBTÉM OS ITENS RELACIONADOS AO PREGÃO NO PORTAL BEC
+////OBTÃ‰M OS ITENS RELACIONADOS AO PREGÃƒO NO PORTAL BEC
 async function getItemsBec(url, localHost) {
   const response = await axios.default.get(url).then((result) => result);
   const $ = cheerio.load(response.data);
@@ -499,7 +473,7 @@ async function getItemsBec(url, localHost) {
     const dt = {
       _id: ID(),
       cod: $(el).find($("[data-label=Item]")).text(),
-      code: $(el).find($("[data-label=Código]")).text(),
+      code: $(el).find($("[data-label=CÃ³digo]")).text(),
       lote: $(el).find($("[data-label=Item]")).text(),
       amount: parseInt($(el).find($("[data-label=Qtde.]")).text()),
       unit: $(el)
@@ -523,62 +497,45 @@ async function getItemsBec(url, localHost) {
   });
   return items;
 }
-//PEGA A URL PARA EXTRAIR OS DADOS DA DISPENSA DE LICITAÇÃO
+//PEGA A URL PARA EXTRAIR OS DADOS DA DISPENSA DE LICITAÃ‡ÃƒO
 const getUrlDispensanPortalBec = async (oc) => {
-  const browser = await puppeteer.default.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.goto(
-    "https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/BEC_DL_Pesquisa.aspx?chave="
-  );
-
-  await page.type(
-    "#ctl00_c_area_conteudo_Wuc_filtroPesquisaOc1_c_tbNumeroOc",
-    oc
-  );
-  const btn = await page.waitForSelector(
-    "#ctl00_c_area_conteudo_bt33022_Pesquisa"
-  );
-  await btn.click();
-  await page.waitForSelector("#ctl00_c_area_conteudo_div_grid2");
-  const linksdispensa = await page.$$(
-    "#ctl00_c_area_conteudo_grdvOC_publico > tbody > tr > td > a"
-  );
-  let urlDispensa = "";
-  for (let link of linksdispensa) {
-    await page.evaluate((el) => el.click(), link);
-    await page.waitForSelector("#aspnetForm");
-    const url = page.url();
-    urlDispensa = url;
-  }
-  const Links = await axios.default.get(urlDispensa).then((html) => {
-    const dom = cheerio.load(html.data);
-    const dataset = [];
-
-    dom("a", "#topMenu").each((i, link) => {
-      dataset.push({
-        key: i,
-        text: link.children[0].data,
-        url: link.attribs.href,
-      });
+  try {
+    const urlAws =
+      "https://pnqlxrajy5.execute-api.us-east-1.amazonaws.com/geturldispensabec";
+    const { data } = await axios.default.post(urlAws, {
+      oc: oc,
     });
-    //console.log(dataset);
-    return dataset;
-  });
-
-  const linkItems = Links.filter((item) => item.text.includes("Dispensa"));
-  await browser.close();
-  return "https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkItems[0].url;
+    const url = data.url;
+    const Links = await axios.default.get(url).then((html) => {
+      const dom = cheerio.load(html.data);
+      const dataset = [];
+      dom("a", "#topMenu").each((i, link) => {
+        dataset.push({
+          key: i,
+          text: link.children[0].data,
+          url: link.attribs.href,
+        });
+      });
+      return dataset;
+    });
+    const [{ url: linkurl }] = Links.filter((item) =>
+      item.text.includes("Dispensa")
+    );
+    // console.log(linkItems);
+    console.log("https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkurl);
+    return "https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkurl;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
 };
-
 //PESQUISA RELACIONADA AO CONVITE NO PORTAL BEC COM NUMERO DA OC
 const getDispensaDataFromTheBecPortal = async (oc) => {
   const url = await getUrlDispensanPortalBec(oc);
   const num_uge = String(oc).substring(0, 6);
   const dadaGovernmentBec = await getDataUgePortalBec(num_uge);
   const items = await getItemsDispensaBec(url);
-
-  const itemsFilter = items.items.filter((item) => item.code != "Código");
-  //console.log(items.items, itemsFilter);
+  const itemsFilter = items.items.filter((item) => item.code != "CÃ³digo");
   const dataBidingBec = {
     _id: ID(),
     process_data: {
@@ -635,7 +592,6 @@ const getDispensaDataFromTheBecPortal = async (oc) => {
       itens: itemsFilter,
     },
   };
-  // console.log(dataBidingBec);
   return dataBidingBec;
 };
 
@@ -694,5 +650,5 @@ const getItemsDispensaBec = async (url) => {
   });
   return response;
 };
-
+//getDataBiddingPortalBec();
 module.exports = { getDataBiddingPortalBec };

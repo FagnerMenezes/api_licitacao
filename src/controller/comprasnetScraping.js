@@ -2,7 +2,7 @@ const axios = require("axios");
 const chr = require("cheerio");
 const { v4: ID } = require("uuid");
 const { StatusCodes } = require("http-status-codes");
-const { getDataBiddingPortalBec } = require("./getDataBiddingBec");
+const { getDataBiddingPortalBec } = require("../controller/getDataBiddingBec");
 const token =
   "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
 
@@ -225,23 +225,64 @@ async function getDataBiddings(req, res) {
         data[i].reference_term.itens = itens; //items;
       }
     }
-    console.log("finalizou", "itens");
-    //console.log(data[0]);
-    const pncp = await getDataPCNP(pagina);
-    pncp.map((item) => {
-      const result = {
-        _id: item._id,
-        process_data: item.process_data,
-        government: item.government,
-        reference_term: item.reference_term,
-      };
-      data.push(result);
-    });
+    console.log("finalizou", "comprasnet");
+
+    const { totalPagesPncp } = await getDataPCNP("1", "1", "", "");
+    console.log("total pagina pncp:", totalPagesPncp);
+
+    if (pagina <= totalPagesPncp && dt_inicio !== "") {
+      console.log("pagina:", pagina);
+      const dataPncp = await getDataPCNP(pagina, "10", dt_inicio, dt_fim);
+      dataPncp?.data?.map((item) => {
+        const result = {
+          _id: item._id,
+          process_data: item.process_data,
+          government: item.government,
+          reference_term: {
+            itens: item.reference_term.itens.filter((item) => {
+              return keywords.some((keyword) =>
+                String(item.description).toUpperCase().includes(keyword)
+              );
+            }),
+          },
+        };
+        data.push(result);
+      });
+    }
+
+    if (pagina === 1 && uasg === "") {
+      console.log("pagina", pagina);
+      const dataBidding = await getDataBiddingPortalBec();
+      const filteredData = dataBidding.filter((items, i) =>
+        keywords.some((keyword) =>
+          String(
+            items.reference_term.itens.map((item) => item.description)
+          ).includes(keyword)
+        )
+      );
+
+      filteredData.map((item) => {
+        const result = {
+          _id: item._id,
+          process_data: item.process_data,
+          government: item.government,
+          reference_term: {
+            itens: item.reference_term.itens.filter((item) => {
+              return keywords.some((keyword) =>
+                String(item.description).toUpperCase().includes(keyword)
+              );
+            }),
+          },
+        };
+        data.push(result);
+      });
+    }
+
     res
       .status(StatusCodes.OK)
       .json({ data, total_biddings: total, total_pages: totalPage });
   } catch (error) {
-    console.log(error.message);
+    console.error(error);
     res.status(404).json({ error: error.message });
   }
 }
@@ -474,23 +515,18 @@ const totalPageAndItems = async (uasg, pregao, pagina) => {
 const extractNameGovernment = async (uasg) => {
   let nameGovernment = "";
   //const url = `http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp`;
-
   let headersList = {
     Accept: "*/*",
     "Content-Type": "application/x-www-form-urlencoded",
   };
-
   let bodyContent = `codigo=${uasg}`;
-
   let reqOptions = {
     url: "http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp",
     method: "POST",
     headers: headersList,
     data: bodyContent,
   };
-
   let response = await axios.request(reqOptions);
-
   const $ = chr.load(response.data);
   nameGovernment = String(
     $(".td").find("tr:nth-child(2)>td:nth-child(2)").text()
@@ -509,7 +545,6 @@ async function registerProposalComprasnet(req, res) {
       "Content-Type": "application/json",
     };
     const bodyContent = req.body;
-    //console.log(bodyContent);
     const reqOptions = {
       url: url,
       method: "POST",
