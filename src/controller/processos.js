@@ -28,6 +28,7 @@ exports.findProcesso = async (req, res) => {
         .split("T")[0];
       end = new Date(Date.now()).toISOString().split("T")[0];
     }
+    // console.log(new Date(`${end}`));
     const response = await Processo.aggregate([
       {
         $match: {

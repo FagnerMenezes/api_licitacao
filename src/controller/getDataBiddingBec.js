@@ -1,5 +1,5 @@
 const axios = require("axios");
-const puppeteer = require("puppeteer-extra");
+//const puppeteer = require("puppeteer-extra");
 const cheerio = require("cheerio");
 const { v4: ID } = require("uuid");
 
@@ -7,15 +7,16 @@ const getDataBiddingPortalBec = async (req, res) => {
   try {
     const data = [];
     const dataFilter = await getListNewBiddingsPortalBec();
+    console.log(dataFilter);
     const processDataSet = async (typeBidding, processFunction) => {
       const filterDataSetBec = dataFilter.filter((item) =>
         item?.type_dispute?.includes(typeBidding)
       );
 
       let promises = filterDataSetBec.map(async (item) => {
-        console.log("inicio", item.type_dispute);
+        //console.log("inicio", item.type_dispute);
         const dataItem = await processFunction(item.oc);
-        console.log("fim", item.type_dispute);
+        // console.log("fim", item.type_dispute);
         return dataItem;
       });
 
@@ -23,20 +24,13 @@ const getDataBiddingPortalBec = async (req, res) => {
       dataItem.map((item) => {
         data.push(item);
       });
-
-      // for (const item of filterDataSetBec) {
-      //   //console.log("inicio", item.type_dispute);
-      //   const dataItem = await processFunction(item.oc);
-      //   data.push(dataItem);
-      //  // console.log("fim", item.type_dispute);
-      // }
     };
     await Promise.all([
       processDataSet("PE", getDataBiddingBec),
       processDataSet("CV", processDataSetInvitationPortalBec),
-      processDataSet("DL", getDispensaDataFromTheBecPortal),
+      // processDataSet("DL", getDispensaDataFromTheBecPortal),
     ]);
-    // console.log(data);
+    //console.log(data);
     return data;
   } catch (error) {
     console.log(error);
@@ -49,6 +43,7 @@ const getChaveBec = async () => {
     "https://i5qjt36nld.execute-api.us-east-1.amazonaws.com/chavebec"
   );
   const url = response.data;
+  //console.log(url);
   return url;
 };
 
@@ -88,16 +83,22 @@ const getListNewBiddingsPortalBec = async () => {
       parseInt(item?.date_dispute.substring(0, 2).trim()) <= dateDay + 1 &&
       parseInt(item?.date_dispute.substring(3, 5).trim()) === dateMoth
   );
+  //console.log(dataSetFilter)
   return dataSetFilter;
 };
 
 const getUrlInvitationPortalBec = async (oc) => {
   const urlAws =
     "https://8o3z8sxdh9.execute-api.us-east-1.amazonaws.com/urlconvite";
-  const { data } = await axios.default.post(urlAws, {
-    oc: oc,
-  });
+  const { data } = await axios.default
+    .post(urlAws, {
+      oc: oc,
+    })
+    .catch((error) => {
+      console.error(error);
+    });
   const url = data.url;
+  //console.log("url convite", data);
   const Links = await axios.default.get(url).then((html) => {
     const dom = cheerio.load(html.data);
     const dataset = [];
@@ -498,10 +499,15 @@ const getUrlDispensanPortalBec = async (oc) => {
   try {
     const urlAws =
       "https://pnqlxrajy5.execute-api.us-east-1.amazonaws.com/geturldispensabec";
-    const { data } = await axios.default.post(urlAws, {
-      oc: oc,
-    });
+    const { data } = await axios.default
+      .post(urlAws, {
+        oc: oc,
+      })
+      .catch((erro) => {
+        console.log(erro);
+      });
     const url = data.url;
+    //console.log("url dispensa", data);
     const Links = await axios.default.get(url).then((html) => {
       const dom = cheerio.load(html.data);
       const dataset = [];
@@ -518,7 +524,7 @@ const getUrlDispensanPortalBec = async (oc) => {
       item.text.includes("Dispensa")
     );
     // console.log(linkItems);
-    console.log("https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkurl);
+    //console.log("https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkurl);
     return "https://www.bec.sp.gov.br/BEC_Dispensa_UI/ui/" + linkurl;
   } catch (error) {
     console.error(error);
