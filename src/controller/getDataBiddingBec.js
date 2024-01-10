@@ -7,16 +7,15 @@ const getDataBiddingPortalBec = async (req, res) => {
   try {
     const data = [];
     const dataFilter = await getListNewBiddingsPortalBec();
-    console.log(dataFilter);
     const processDataSet = async (typeBidding, processFunction) => {
       const filterDataSetBec = dataFilter.filter((item) =>
         item?.type_dispute?.includes(typeBidding)
       );
 
       let promises = filterDataSetBec.map(async (item) => {
-        //console.log("inicio", item.type_dispute);
-        const dataItem = await processFunction(item.oc);
-        // console.log("fim", item.type_dispute);
+        //console.log("inicio", item?.type_dispute);
+        const dataItem = await processFunction(item?.oc);
+        // console.log("fim", item?.type_dispute);
         return dataItem;
       });
 
@@ -24,13 +23,20 @@ const getDataBiddingPortalBec = async (req, res) => {
       dataItem.map((item) => {
         data.push(item);
       });
+
+      // for (const item of filterDataSetBec) {
+      //   //console.log("inicio", item.type_dispute);
+      //   const dataItem = await processFunction(item.oc);
+      //   data.push(dataItem);
+      //  // console.log("fim", item.type_dispute);
+      // }
     };
-    await Promise.all([
+    await Promise.allSettled([
       processDataSet("PE", getDataBiddingBec),
       processDataSet("CV", processDataSetInvitationPortalBec),
-      // processDataSet("DL", getDispensaDataFromTheBecPortal),
+      processDataSet("DL", getDispensaDataFromTheBecPortal),
     ]);
-    //console.log(data);
+    // console.log(data);
     return data;
   } catch (error) {
     console.log(error);
@@ -43,7 +49,6 @@ const getChaveBec = async () => {
     "https://i5qjt36nld.execute-api.us-east-1.amazonaws.com/chavebec"
   );
   const url = response.data;
-  //console.log(url);
   return url;
 };
 
@@ -59,13 +64,11 @@ const getListNewBiddingsPortalBec = async () => {
     if ($(row.children[6]).text().trim().includes("Oferta de Compra")) return;
     const typeDispute = String(
       $(row.children[7]).text().trim().substring(0, 7).trim()
-    );
+    )
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
     const type_Dispute =
-      typeDispute === "Convite"
-        ? "CV"
-        : typeDispute === "PregÃ£o"
-        ? "PE"
-        : "DL";
+      typeDispute === "Convite" ? "CV" : typeDispute === "Pregao" ? "PE" : "DL";
 
     const data = {
       oc: $(row.children[6]).text().trim(),
@@ -83,22 +86,16 @@ const getListNewBiddingsPortalBec = async () => {
       parseInt(item?.date_dispute.substring(0, 2).trim()) <= dateDay + 1 &&
       parseInt(item?.date_dispute.substring(3, 5).trim()) === dateMoth
   );
-  //console.log(dataSetFilter)
   return dataSetFilter;
 };
 
 const getUrlInvitationPortalBec = async (oc) => {
   const urlAws =
     "https://8o3z8sxdh9.execute-api.us-east-1.amazonaws.com/urlconvite";
-  const { data } = await axios.default
-    .post(urlAws, {
-      oc: oc,
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+  const { data } = await axios.default.post(urlAws, {
+    oc: oc,
+  });
   const url = data.url;
-  //console.log("url convite", data);
   const Links = await axios.default.get(url).then((html) => {
     const dom = cheerio.load(html.data);
     const dataset = [];
@@ -421,7 +418,7 @@ const getDataBiddingBec = async (oc) => {
           address: [
             {
               _id: ID(),
-              type_address: "LICITAÃ‡ÃƒO",
+              type_address: "LICITACAO",
               street: Info_Government.street,
               number: Info_Government.number,
               district: Info_Government.district,
@@ -452,7 +449,11 @@ const getDataBiddingBec = async (oc) => {
     //console.log("DADOS PREGÃƒO:", data);
     return data;
   });
+
   return dataBidding;
+  // });
+  //console.log(data);
+  //return data;
 };
 
 ////OBTÃ‰M OS ITENS RELACIONADOS AO PREGÃƒO NO PORTAL BEC
@@ -470,7 +471,7 @@ async function getItemsBec(url, localHost) {
     const dt = {
       _id: ID(),
       cod: $(el).find($("[data-label=Item]")).text(),
-      code: $(el).find($("[data-label=CÃ³digo]")).text(),
+      code: $(el).find($("[data-label=Código]")).text(),
       lote: $(el).find($("[data-label=Item]")).text(),
       amount: parseInt($(el).find($("[data-label=Qtde.]")).text()),
       unit: $(el)
@@ -499,15 +500,10 @@ const getUrlDispensanPortalBec = async (oc) => {
   try {
     const urlAws =
       "https://pnqlxrajy5.execute-api.us-east-1.amazonaws.com/geturldispensabec";
-    const { data } = await axios.default
-      .post(urlAws, {
-        oc: oc,
-      })
-      .catch((erro) => {
-        console.log(erro);
-      });
+    const { data } = await axios.default.post(urlAws, {
+      oc: oc,
+    });
     const url = data.url;
-    //console.log("url dispensa", data);
     const Links = await axios.default.get(url).then((html) => {
       const dom = cheerio.load(html.data);
       const dataset = [];
@@ -537,7 +533,7 @@ const getDispensaDataFromTheBecPortal = async (oc) => {
   const num_uge = String(oc).substring(0, 6);
   const dadaGovernmentBec = await getDataUgePortalBec(num_uge);
   const items = await getItemsDispensaBec(url);
-  const itemsFilter = items.items.filter((item) => item.code != "CÃ³digo");
+  const itemsFilter = items.items.filter((item) => item.code != "Código");
   const dataBidingBec = {
     _id: ID(),
     process_data: {

@@ -2,12 +2,12 @@ const {
   dataSetPortalComprasPublicas,
 } = require("../models/portalComprasPublicas/getBiddings");
 
-exports.executeScrapingInPortalComprasPublicas = async (req, res) => {
+exports.executeScrapingInPortalComprasPublicas = async (body) => {
   try {
-    const response = await dataSetPortalComprasPublicas(req.body, 0);
-    res.status(200).json(response);
+    const response = await dataSetPortalComprasPublicas(body, 0);
+    return response;
   } catch (error) {
     console.error(error);
-    return res.status(404).send({ error: error });
+    return error;
   }
 };

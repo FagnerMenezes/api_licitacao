@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { ConsoleMessage } = require("puppeteer-core");
 const { v4: ID } = require("uuid");
 
 const keywords = [
@@ -33,27 +32,45 @@ const dataBiddingComprasPublicas = async (url) => {
 //PEGA AS LICITAÇÕES NO PORTAL DE COMPRAS PUBLICAS
 const fetchBiddingsPortalComprasPublicas = async (body, pagina) => {
   const { dataInicial, dataFinal } = body;
-  const response = await axios.default.get(
-    urlComprasPublicas(pagina, dataInicial, dataFinal)
-  );
+  const url = await urlComprasPublicas(pagina, dataInicial, dataFinal);
+  //console.log(url);
+  const response = await axios.default.get(url);
+
   return response.data;
 };
-
+/**
+ *
+ * @param {object} body
+ * @param {string | any} pagina
+ * @returns
+ */
 const dataSetPortalComprasPublicas = async (body, pagina) => {
-  const dataInitial = {
-    dataInicial: "2023-12-28T03:00:00.000Z",
-    dataFinal: "2023-12-28T03:00:00.000",
+  const { dt_inicio, dt_fim } = body;
+
+  const dataBody = {
+    dataInicial:
+      String(dt_inicio).substring(6, 10) +
+      "-" +
+      String(dt_inicio).substring(3, 5) +
+      "-" +
+      String(dt_inicio).substring(0, 2) +
+      "T03:00:00.000Z",
+    dataFinal:
+      String(dt_fim).substring(6, 10) +
+      "-" +
+      String(dt_fim).substring(3, 5) +
+      "-" +
+      String(dt_fim).substring(0, 2) +
+      "T03:00:00.000",
   };
+
   //FAZ O FETCH PARA BUSCAR O TOTAL DE LICITAÇÕES
-  const { pageCount } = await fetchBiddingsPortalComprasPublicas(
-    dataInitial,
-    1
-  );
+  const { pageCount } = await fetchBiddingsPortalComprasPublicas(dataBody, 1);
 
   const promises = [];
   //FAZ O LOOP PARA CARREGAR AS PROMISSES
   for (let i = 1; i <= pageCount; i++) {
-    const data = fetchBiddingsPortalComprasPublicas(body, i);
+    const data = fetchBiddingsPortalComprasPublicas(dataBody, i);
     promises.push(data);
   }
   //EXECUTA AS PROMISSES
@@ -66,8 +83,12 @@ const dataSetPortalComprasPublicas = async (body, pagina) => {
   //ORGANIZA OS DADOS EM UM UNICO ARRAY
   const data = dataBidding.flatMap((data) => data);
   const dataSet = data.map(async (item) => {
-    const dataBiddings = await dataBiddingComprasPublicas(item.urlReferencia);
-    const items_ = await filterItemsPortalComprasPublicas(item.codigoLicitacao);
+    // console.log(item?.urlReferencia);
+    const dataBiddings = await dataBiddingComprasPublicas(item?.urlReferencia);
+    //console.log(dataBiddings);
+    const items_ = await filterItemsPortalComprasPublicas(
+      item?.codigoLicitacao
+    );
     const items = items_.map(createItem);
     const biddings = await createBidding(items, dataBiddings, items);
     return biddings;
@@ -75,12 +96,11 @@ const dataSetPortalComprasPublicas = async (body, pagina) => {
   const ds = await Promise.all(dataSet.map(async (data) => await data));
   const dataSetFilter = ds.filter((item) =>
     keywords.some((keyword) =>
-      item.reference_term.itens.some((items) =>
-        items.description.includes(keyword)
+      item?.reference_term?.itens.some((items) =>
+        items?.description.includes(keyword)
       )
     )
   );
-
   return dataSetFilter;
 };
 
@@ -107,7 +127,7 @@ const createItem = (item) => {
 };
 
 const createBidding = async (item, dataBiddings, items) => {
-  console.log(dataBiddings.dataHoraFinalRecebimentoPropostas);
+  //console.log(dataBiddings.dataHoraFinalRecebimentoPropostas);
   const dataAbertura = dataBiddings.dataHoraFinalRecebimentoPropostas;
   return {
     _id: ID(),
@@ -209,8 +229,8 @@ const getLinkEdital = async (url) => {
 };
 
 module.exports = { dataSetPortalComprasPublicas };
-// dataSetPortalComprasPublicas({
-//   dataInicial: "2023-12-28T03:00:00.000Z",
-//   dataFinal: "2023-12-28T03:00:00.000",
-//   pagina: 0,
-// });
+// const body = {
+//   dt_inicio: "29/12/2023",
+//   dt_fim: "09/01/2024",
+// };
+// dataSetPortalComprasPublicas(body, 0);

@@ -145,7 +145,7 @@ exports.delete = async (req, res) => {
     const Processos = await Processo.deleteOne({
       _id: ObjectId(req.params.id),
     }).then((result) => {
-      console.log(result);
+      //console.log(result);
       return result;
     });
     await res.status(200).json(Processos);

@@ -6,7 +6,6 @@ const { getDataBiddingPortalBec } = require("../controller/getDataBiddingBec");
 const {
   dataSetPortalComprasPublicas,
 } = require("../models/portalComprasPublicas/getBiddings");
-
 const token =
   "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
 
@@ -27,169 +26,17 @@ async function totalBiddings(dt_inicio, dt_fim) {
 
       const total = parseInt(totalBiddings);
       const totalPage = Math.ceil(parseFloat(total / 10));
+
       return totalPage;
     });
   return data;
 }
-
-const getDataBiddingPortalComprasNet = async (
-  dt_inicio,
-  dt_fim,
-  uasg,
-  edital
-) => {
-  try {
-    const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
-    const dataBiddings = [];
-    for (let i = 1; i <= totalPagesBiddings; i++) {
-      const dataBidding = axios.default
-        .get(urlGetBiddingComprasnet(dt_inicio, dt_fim, i, uasg, edital), {
-          responseType: "json",
-          charset: "utf-8",
-          responseEncodig: "utf-8",
-        })
-        .then((html) => {
-          const $ = chr.load(html.data, { decodeEntities: false });
-          const data = [];
-          $(".tex3")
-            .children("td")
-            .each((i, el) => {
-              const extractNumUasg = $(el)
-                .find("b:nth-child(1)")
-                .text()
-                .replace(/[^0-9]/g, "");
-              const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
-              const extractNumPregao = $(el)
-                .find("b:nth-child(3)")
-                .text()
-                .replace(/[^a-zA-Z0-9]/g, "");
-
-              const extract_data_hs = String(el.children[23].data).replace(
-                /[^0-9]/g,
-                ""
-              );
-              const extract_data = String(el.children[8].data).replace(
-                /[^0-9]/g,
-                ""
-              );
-              const address = String(el.children[11].data);
-              const city = String(el.children[11].data)
-                .replace(/\ufffd/gim, "")
-                .match(
-                  /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
-                );
-              const biddings = {
-                _id: ID(),
-                process_data: {
-                  status: "Cadastrar proposta",
-                  type_dispute: "Menor preço unitário",
-                  modality: "PE",
-                  portal: "COMPRASNET",
-                  n_process: extractNumPregao
-                    .substring(10, 22)
-                    .replace(/[a-zA-Z]/g, ""),
-                  bidding_notice: extractNumPregao
-                    .substring(10, 22)
-                    .replace(/[a-zA-Z]/g, ""),
-                  date_finish:
-                    extract_data_hs.substring(4, 8) +
-                    "-" +
-                    extract_data_hs.substring(2, 4) +
-                    "-" +
-                    extract_data_hs.substring(0, 2),
-                  object: String(el.children[5].data).trim(),
-                  hours_finish:
-                    extract_data_hs.substring(8, 10) +
-                    ":" +
-                    extract_data_hs.substring(10, 12),
-                  date_init: String(el.children[20].data)
-                    .replace(/[^0-9]/gim, "")
-                    .substring(0, 8)
-                    .replace(/([0-9]{2})([0-9]{2})([0-9]{4})/g, "$3-$2-$1")
-                    .trim(),
-                },
-                government: [
-                  {
-                    _id: ID(),
-                    cnpj: "000000000",
-                    name: "",
-                    code_government: uasg,
-                    manager: true,
-                    address: [
-                      {
-                        _id: ID(),
-                        zip_code: "",
-                        complement: "",
-                        street: el.children[11].data,
-                        number: String(el.children[11].data)
-                          .toUpperCase()
-                          .substring(
-                            String(el.children[11].data).indexOf(","),
-                            String(el.children[11].data).indexOf(",") + 10
-                          )
-                          .replace(/[^0-9]/g, "")
-                          .trim(),
-                        district: "",
-                        city: String(city)
-                          .substring(0, String(city).length - 4)
-                          .trim(),
-                        type_address: "LICITAÇÃO",
-                        uf: String(el.children[11].data)
-                          .substring(
-                            String(address).length - 4,
-                            String(address).length
-                          )
-                          .replace(/[^a-zA-Z]/g, "")
-                          .trim(),
-                      },
-                    ],
-                    contact: [
-                      {
-                        _id: ID(),
-                        name: "COMPRAS",
-                        sector: "LICITAÇÃO",
-                        contact: String(el.children[14].data).replace(
-                          /[^0-9]/g,
-                          ""
-                        ),
-                        tipo: "TEL",
-                      },
-                    ],
-                  },
-                ],
-                reference_term: {
-                  validity: "",
-                  guarantee: "",
-                  deadline: "",
-                  itens: [],
-                },
-              };
-
-              data.push(biddings);
-            });
-          return data;
-        });
-      dataBiddings.push(dataBidding);
-    }
-    const dataBiddingsResult = await Promise.all(dataBiddings);
-    let arrayReduce = dataBiddingsResult.flatMap((value) => value);
-    return {
-      dataSet: arrayReduce,
-      total: arrayReduce.length,
-      totalPages: totalPagesBiddings,
-    };
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-};
-
 async function getDataBiddings(req, res) {
   //console.log(req.body);
   const { uasg, edital, pagina, dt_inicio, dt_fim } = req.body;
-  let total = "1";
-  let totalPage = "1";
-  //const biddings = [];
+  let total = 0;
+  let totalPage = 0;
+  const biddings = [];
   try {
     const keywords = [
       "ELETRODO",
@@ -205,164 +52,260 @@ async function getDataBiddings(req, res) {
       "CILINDRO",
       "FURADEIRA",
     ];
-    const { dataSet, total, totalPages } = await getDataBiddingPortalComprasNet(
-      dt_inicio,
-      dt_fim,
-      uasg,
-      edital
-    );
+    const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
+    const { totalPagesPncp } = await getDataPCNP("1", "1", "", "");
+    const totalPageComprasnet = totalPagesBiddings || 0;
+    const totalPagePortalPncp = totalPagesPncp || 0;
+    const totalPg =
+      totalPagePortalPncp < totalPageComprasnet
+        ? totalPageComprasnet
+        : totalPagePortalPncp;
 
-    for (let i = 0; i < dataSet?.length; i++) {
-      const uasg = dataSet[i].government[0].code_government;
-      const nameGovernment = await extractNameGovernment(uasg).then((data) => {
-        return data;
-      });
-      dataSet[i].government[0].name = nameGovernment.replace(/\n/g, "").trim();
-    }
+    let dataBiddings = [];
+    let data = [];
+    let count = 1;
 
-    for (let i = 0; i < dataSet.length; i++) {
-      const uasg = dataSet[i].government[0].code_government;
-      const pregao = dataSet[i].process_data.bidding_notice;
-      const { totalPages } = await extractItemsBidding(uasg, pregao, 1);
+    if (pagina <= totalPageComprasnet && dt_inicio !== "") {
+      for (let i = count; i <= 1; i++) {
+        const dataBidding = await axios.default
+          .get(
+            urlGetBiddingComprasnet(dt_inicio, dt_fim, pagina, uasg, edital),
+            {
+              responseType: "json",
+              charset: "utf-8",
+              responseEncodig: "utf-8",
+            }
+          )
+          .then((html) => {
+            const $ = chr.load(html.data, { decodeEntities: false });
+            const data = [];
+            const textTotalBiddings = $(".td_titulo_campo").text();
+            const totalBiddings = textTotalBiddings
+              .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
+              .replace(/[^0-9]/g, "")
+              .trim();
+            //console.log(totalBiddings);
+            total = parseInt(totalBiddings);
+            totalPage = Math.ceil(parseFloat(total / 10));
 
-      let promises = [];
-      for (let t = 1; t <= parseInt(totalPages); t++) {
-        //console.log("extraindo itens");
-        promises.push(extractItemsBidding(uasg, pregao, t));
+            $(".tex3")
+              .children("td")
+              .each((i, el) => {
+                const extractNumUasg = $(el)
+                  .find("b:nth-child(1)")
+                  .text()
+                  .replace(/[^0-9]/g, "");
+                const uasg = extractNumUasg.substring(
+                  extractNumUasg.length - 6
+                );
+                const extractNumPregao = $(el)
+                  .find("b:nth-child(3)")
+                  .text()
+                  .replace(/[^a-zA-Z0-9]/g, "");
+
+                const extract_data_hs = String(el.children[23].data).replace(
+                  /[^0-9]/g,
+                  ""
+                );
+                const extract_data = String(el.children[8].data).replace(
+                  /[^0-9]/g,
+                  ""
+                );
+                const address = String(el.children[11].data);
+                const city = String(el.children[11].data)
+                  .replace(/\ufffd/gim, "")
+                  .match(
+                    /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
+                  );
+                const biddings = {
+                  _id: ID(),
+                  government: [
+                    {
+                      _id: ID(),
+                      cnpj: "000000000",
+                      name: "",
+                      code_government: uasg,
+                      manager: true,
+                      address: [
+                        {
+                          _id: ID(),
+                          zip_code: "",
+                          complement: "",
+                          street: el.children[11].data,
+                          number: String(el.children[11].data)
+                            .toUpperCase()
+                            .substring(
+                              String(el.children[11].data).indexOf(","),
+                              String(el.children[11].data).indexOf(",") + 10
+                            )
+                            .replace(/[^0-9]/g, "")
+                            .trim(),
+                          district: "",
+                          city: String(city)
+                            .substring(0, String(city).length - 4)
+                            .trim(),
+                          type_address: "LICITAÇÃO",
+                          uf: String(el.children[11].data)
+                            .substring(
+                              String(address).length - 4,
+                              String(address).length
+                            )
+                            .replace(/[^a-zA-Z]/g, "")
+                            .trim(),
+                        },
+                      ],
+                      contact: [
+                        {
+                          _id: ID(),
+                          name: "COMPRAS",
+                          sector: "LICITAÇÃO",
+                          contact: String(el.children[14].data).replace(
+                            /[^0-9]/g,
+                            ""
+                          ),
+                          tipo: "TEL",
+                        },
+                      ],
+                    },
+                  ],
+                  reference_term: {
+                    validity: "",
+                    guarantee: "",
+                    deadline: "",
+                    itens: [],
+                  },
+                  process_data: {
+                    status: "Cadastrar proposta",
+                    type_dispute: "Menor preço unitário",
+                    modality: "PE",
+                    portal: "COMPRASNET",
+                    n_process: extractNumPregao
+                      .substring(10, 22)
+                      .replace(/[a-zA-Z]/g, ""),
+                    bidding_notice: extractNumPregao
+                      .substring(10, 22)
+                      .replace(/[a-zA-Z]/g, ""),
+                    date_finish:
+                      extract_data_hs.substring(4, 8) +
+                      "-" +
+                      extract_data_hs.substring(2, 4) +
+                      "-" +
+                      extract_data_hs.substring(0, 2),
+                    object: String(el.children[5].data).trim(),
+                    hours_finish:
+                      extract_data_hs.substring(8, 10) +
+                      ":" +
+                      extract_data_hs.substring(10, 12),
+                    date_init: String(el.children[20].data)
+                      .replace(/[^0-9]/gim, "")
+                      .substring(0, 8)
+                      .replace(/([0-9]{2})([0-9]{2})([0-9]{4})/g, "$3-$2-$1")
+                      .trim(),
+                  },
+                };
+                data.push(biddings);
+              });
+            dataBiddings.push(...data);
+            //console.log(dataBiddings,i);
+            return dataBiddings;
+          });
+        data = dataBidding;
       }
 
-      let items = [];
-      Promise.all(promises)
-        .then((results) => {
-          results.forEach((data) => {
-            items.push(...data.itens);
-          });
-          dataSet[i].reference_term.itens = items;
-        })
-        .catch((error) => {
-          console.error(error.message);
-        });
+      for (let i = 0; i < data.length; i++) {
+        const uasg = data[i].government[0].code_government;
+
+        const nameGovernment = await extractNameGovernment(uasg).then(
+          (data) => {
+            return data;
+          }
+        );
+
+        data[i].government[0].name = nameGovernment.replace(/\n/g, "").trim();
+      }
+
+      for (let i = 0; i < data.length; i++) {
+        const uasg = data[i].government[0].code_government;
+        const pregao = data[i].process_data.bidding_notice;
+        const { totalPages, totalItems } = await extractItemsBidding(
+          uasg,
+          pregao,
+          1
+        ).then((data) => data);
+        const item = [];
+        for (let t = 1; t <= parseInt(totalPages); t++) {
+          const itens = await extractItemsBidding(uasg, pregao, t).then(
+            (data) => {
+              item.push(...data.itens);
+              return item;
+            }
+          );
+          //console.log(itens);
+          data[i].reference_term.itens = itens; //items;
+        }
+      }
     }
 
-    const { totalPagesPncp } = await getDataPCNP(
-      pagina,
-      "10",
-      dt_inicio,
-      dt_fim
-    );
-    //const promisesPncp = [];
-
-    for (let x = 0; x <= totalPagesPncp; x++) {
-      const dataPncp = await getDataPCNP(1, "10", dt_inicio, dt_fim);
-      dataPncp.map((item) => {
+    if (pagina <= totalPagePortalPncp && dt_inicio !== "") {
+      console.log("pagina pncp:", pagina + " - " + totalPagesPncp);
+      const dataPncp = await getDataPCNP(pagina, "10", dt_inicio, dt_fim);
+      dataPncp?.data?.map((item) => {
         const result = {
           _id: item._id,
           process_data: item.process_data,
           government: item.government,
           reference_term: {
-            itens: item?.reference_term?.itens.filter((item) => {
+            itens: item.reference_term.itens.filter((item) => {
               return keywords.some((keyword) =>
                 String(item.description).toUpperCase().includes(keyword)
               );
             }),
           },
         };
-
-        dataSet.push({ ...result });
-        // return result;
+        data.push(result);
       });
     }
-    // if (pagina <= totalPagesPncp && dt_inicio !== "") {
-    // const dataPncp = await getDataPCNP(pagina, "10", dt_inicio, dt_fim);
 
-    //dataPncp?.data?.map((item) => {
-    //  const result = {
-    // _id: item._id,
-    // process_data: item.process_data,
-    // government: item.government,
-    // reference_term: {
-    //   itens: item.reference_term.itens.filter((item) => {
-    //     return keywords.some((keyword) =>
-    //       String(item.description).toUpperCase().includes(keyword)
-    //     );
-    //   }),
-    // },
-    // };
+    if (parseInt(pagina) <= 1 && uasg === "") {
+      const dataBidding = await getDataBiddingPortalBec();
+      const filteredData = dataBidding.filter((items, i) =>
+        keywords.some((keyword) =>
+          String(
+            items.reference_term.itens.map((item) => item.description)
+          ).includes(keyword)
+        )
+      );
 
-    //  dataSet.push(result);
-    // });
+      filteredData.map((item) => {
+        const result = {
+          _id: item._id,
+          process_data: item.process_data,
+          government: item.government,
+          reference_term: {
+            itens: item.reference_term.itens.filter((item) => {
+              return keywords.some((keyword) =>
+                String(item.description).toUpperCase().includes(keyword)
+              );
+            }),
+          },
+        };
+        data.push(result);
+      });
+      const dataSetComprasPublicas = await dataSetPortalComprasPublicas(
+        req.body,
+        1
+      );
+      dataSetComprasPublicas.map((result) => data.push(result));
+    }
 
-    // }
-
-    // if (pagina === 1 && uasg === "") {
-    //   console.log("pagina", pagina);
-    //   const dataBidding = await getDataBiddingPortalBec();
-    //   const filteredData = dataBidding.filter((items, i) =>
-    //     keywords.some((keyword) =>
-    //       String(
-    //         items.reference_term.itens.map((item) => item.description)
-    //       ).includes(keyword)
-    //     )
-    //   );
-
-    //   filteredData.map((item) => {
-    //     const result = {
-    //       _id: item._id,
-    //       process_data: item.process_data,
-    //       government: item.government,
-    //       reference_term: {
-    //         itens: item.reference_term.itens.filter((item) => {
-    //           return keywords.some((keyword) =>
-    //             String(item.description).toUpperCase().includes(keyword)
-    //           );
-    //         }),
-    //       },
-    //     };
-    //     data.push(result);
-    //   });
-    // }
-
-    // if (pagina === 1 && uasg === "") {
-    //   const body = {
-    //     dataInicial:
-    //       String(dt_inicio).substring(6, 10) +
-    //       "-" +
-    //       String(dt_inicio).substring(3, 5) +
-    //       "-" +
-    //       String(dt_inicio).substring(0, 2) +
-    //       "T00:00:00.000Z",
-    //     dataFinal:
-    //       String(dt_fim).substring(6, 10) +
-    //       "-" +
-    //       String(dt_fim).substring(3, 5) +
-    //       "-" +
-    //       String(dt_fim).substring(0, 2) +
-    //       "T00:00:00.000Z",
-    //     pagina: 0,
-    //   };
-    //   //console.log(body);
-    //   const biddingsComprasPublicas = await dataSetPortalComprasPublicas(
-    //     body,
-    //     "0"
-    //   );
-    //   //console.log(biddingsComprasPublicas);
-    //   biddingsComprasPublicas.map((item) => dataSet.push(item));
-    // }
-    const dataSetFinish = dataSet.filter(
-      (item) => item.reference_term.itens.length >= 1
-    );
-
-    res.status(StatusCodes.OK).json({
-      data: dataSetFinish,
-      total_biddings: total,
-      total_pages: totalPages,
-    });
+    res
+      .status(StatusCodes.OK)
+      .json({ data, total_biddings: total, total_pages: totalPg });
   } catch (error) {
     console.error(error);
     res.status(404).json({ error: error.message });
   }
 }
-
 async function getItemsBiddings(req, res, next) {
   try {
     const uasg = req.query.n_uasg;
@@ -377,11 +320,11 @@ async function getItemsBiddings(req, res, next) {
 }
 /**
  *
- * @param {string} dataInicio - Data Inicial
- * @param {string} dataFim - Data final
- * @param {string} num_pg - Numero da pagina
- * @param {string} numUasg- Numero da uasg
- * @param {string} numPregao - Numero do pregao
+ * @param {string} dataInicio  Data Inicial
+ * @param {string} dataFim  Data final
+ * @param {string} num_pg  Numero da pagina
+ * @param {string} numUasg Numero da uasg
+ * @param {string} numPregao  Numero do pregao
  * @returns
  */
 const urlGetBiddingComprasnet = (
@@ -444,7 +387,7 @@ txtlstMaterial=${items}`;
  *
  * @param {string} uasg - Código da uasg
  * @param {string} pregao - Numero do pregão
- * @param {string} pagina - Numero do pagina
+ * @param {string | any} pagina - Numero do pagina
  * @returns
  */
 const extractItemsBidding = async (uasg, pregao, pagina) => {
@@ -655,7 +598,6 @@ async function getBiddingsNoticesPNCP(
     const response = await axios.default
       .get(url)
       .then((result) => {
-        //console.log(result);
         const dateInitial =
           String(dateInit).substring(6, 10) +
           "-" +
@@ -669,39 +611,36 @@ async function getBiddingsNoticesPNCP(
           "-" +
           String(dateFinish).substring(0, 2);
         const dateFilter = [dateInitial, dateFinaly];
-
-        const dataBidding = result?.data?.items.filter((item) =>
+        const dataBidding = result.data.items.filter((item) =>
           dateFilter.some((date) =>
-            String(item?.data_publicacao_pncp).slice(0, 10).includes(date)
+            String(item.data_publicacao_pncp).slice(0, 10).includes(date)
           )
         );
-        //console.log(result, dataBidding);
         const data = {
           items: dataBidding,
           total: result.data.total,
         };
-        console.log(data);
+        //console.log(data.items);
         return data;
       })
       .catch((error) => {
         console.log(error);
         return error.message;
       });
-    const total = response?.total === undefined ? 0 : response.total;
-    console.log(total);
-    const biddings = response.items
-      .map((item) => {
-        return {
-          cnpj: item.orgao_cnpj,
-          edital: String(item.title)
-            .replace(/[^0-9]/gi, "")
-            .trim(),
-          orgao: item.orgao_nome,
-          numero_sequencial: item.numero_sequencial,
-        };
-      })
-      .filer((data) => data !== undefined);
-    //console.log(biddings);
+    const total = response.total;
+    // console.log(response.items);
+    const biddings = response.items.map((item) => {
+      //const items_biddings = await axios.get();
+      return {
+        cnpj: item.orgao_cnpj,
+        edital: String(item.title)
+          .replace(/[^0-9]/gi, "")
+          .trim(),
+        orgao: item.orgao_nome,
+        numero_sequencial: item.numero_sequencial,
+      };
+    });
+    // console.log(biddings);
     return { biddings, total };
   } catch (error) {
     console.log(error);
@@ -718,12 +657,12 @@ async function getDataBiddingsPNCP(cnpj, code) {
         return result.data;
       })
       .catch((error) => {
-        console.log(error);
+        //console.log(error);
         return error.message;
       });
     return data;
   } catch (error) {
-    console.log(error);
+    //console.log(error);
     return error;
   }
 }
@@ -765,7 +704,6 @@ async function getBiddingsItemsPNCP(cnpj, code, amoutItems) {
     console.log(error);
   }
 }
-
 const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
   try {
     const data = await getBiddingsNoticesPNCP(
@@ -774,8 +712,7 @@ const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
       dateInit,
       dateFinish
     );
-    //console.log("dados pncp", data);
-    const total = Math.ceil(parseInt(data?.total) / 10);
+    const total = Math.ceil(parseInt(data.total) / 10);
     const dataBidding = data.biddings.slice(0, 10);
     //console.log("total de licitaçoes:" + dataBidding.length); // Limita a 10 itens
     const formattedBiddings = await Promise.all(
@@ -886,21 +823,12 @@ const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
     return { error };
   }
 };
-
 const checkPortalPncp = (portal) => {
-  let namePortal = "";
-  switch (portal) {
-    case "Compras.gov.br":
-      namePortal = "COMPRASNET";
-      break;
-    case "AZ INFORMATICA LTDA":
-      namePortal = "COMPRAS BR";
-    // break;
-    default:
-      namePortal = portal;
-      break;
+  if (portal === "Compras.gov.br") {
+    return "COMPRASNET";
+  } else {
+    return portal;
   }
-  return namePortal;
 };
 
 module.exports = {
