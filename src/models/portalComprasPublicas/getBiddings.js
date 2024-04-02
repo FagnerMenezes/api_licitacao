@@ -94,14 +94,8 @@ const dataSetPortalComprasPublicas = async (body, pagina) => {
     return biddings;
   });
   const ds = await Promise.all(dataSet.map(async (data) => await data));
-  const dataSetFilter = ds.filter((item) =>
-    keywords.some((keyword) =>
-      item?.reference_term?.itens.some((items) =>
-        items?.description.includes(keyword)
-      )
-    )
-  );
-  return dataSetFilter;
+
+  return ds;
 };
 
 const createItem = (item) => {

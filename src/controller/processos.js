@@ -118,10 +118,11 @@ exports.post = async (req, res) => {
 };
 
 exports.patch = async (req, res) => {
+  //console.log(req.body);
   try {
     Processo.updateOne(
       {
-        _id: ObjectId(req.params.id),
+        _id: new ObjectId(req.params.id),
       },
       req.body
     )
@@ -129,6 +130,7 @@ exports.patch = async (req, res) => {
         res.status(200).json(result);
       })
       .catch((err) => {
+        console.log(err);
         res.status(400).json(err);
       });
     //await res.status(200).json(Processos);
@@ -143,7 +145,7 @@ exports.delete = async (req, res) => {
   //console.log(req.params.id);
   try {
     const Processos = await Processo.deleteOne({
-      _id: ObjectId(req.params.id),
+      _id: new ObjectId(req.params.id),
     }).then((result) => {
       //console.log(result);
       return result;

@@ -15,6 +15,7 @@ const procesSchema = new Schema({
     type_dispute: String,
     modality: String,
     portal: String,
+    code_pncp: String,
   },
   government: [
     {

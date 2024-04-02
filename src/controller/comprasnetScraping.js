@@ -2,17 +2,25 @@ const axios = require("axios");
 const chr = require("cheerio");
 const { v4: ID } = require("uuid");
 const { StatusCodes } = require("http-status-codes");
-const { getDataBiddingPortalBec } = require("../controller/getDataBiddingBec");
+
+const { getDataBiddingPortalPncp } = require("../services/getBiddingsPncp");
 const {
   dataSetPortalComprasPublicas,
 } = require("../models/portalComprasPublicas/getBiddings");
+
 const token =
   "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNjIzODUzNjUzMDI5LCJjb21wYW55Ijo1MjQsInByb2ZpbGVzIjpbMV19.GwOlJhO4010BlRP9yduRyLkgmNj-DiuHrYqveQHdtfs";
 
+/**
+ * @param {string} dt_inicio
+ * @param {string} dt_fim
+ */
 async function totalBiddings(dt_inicio, dt_fim) {
   const data = await axios.default
+    // @ts-ignore
     .get(urlGetBiddingComprasnet(dt_inicio, dt_fim, 1, "", ""), {
       responseType: "json",
+      // @ts-ignore
       charset: "utf-8",
       responseEncodig: "utf-8",
     })
@@ -25,287 +33,126 @@ async function totalBiddings(dt_inicio, dt_fim) {
         .trim();
 
       const total = parseInt(totalBiddings);
+      // @ts-ignore
       const totalPage = Math.ceil(parseFloat(total / 10));
 
       return totalPage;
     });
   return data;
 }
+/**
+ * @param {{ body: { uasg: any; edital: any; pagina: any; dt_inicio: any; dt_fim: any; }; }} req
+ * @param {{ status: (arg0: number) => { (): any; new (): any; json: { (arg0: { data?: any[]; total_biddings?: number; total_pages?: any; error?: any; }): void; new (): any; }; }; }} res
+ */
 async function getDataBiddings(req, res) {
-  //console.log(req.body);
   const { uasg, edital, pagina, dt_inicio, dt_fim } = req.body;
   let total = 0;
-  let totalPage = 0;
-  const biddings = [];
+  // @ts-ignore
+  // @ts-ignore
+
   try {
-    const keywords = [
-      "ELETRODO",
-      "ARAME MIG",
-      "ELETRODOS",
-      "SOLDA",
-      "SOLDAGEM",
-      "DISCO DE CORTE",
-      "PARAFUSADEIRA",
-      "TOCHA",
-      "COMPRESSOR",
-      "REGULADOR",
-      "CILINDRO",
-      "FURADEIRA",
-    ];
     const totalPagesBiddings = await totalBiddings(dt_inicio, dt_fim);
-    const { totalPagesPncp } = await getDataPCNP("1", "1", "", "");
     const totalPageComprasnet = totalPagesBiddings || 0;
-    const totalPagePortalPncp = totalPagesPncp || 0;
-    const totalPg =
-      totalPagePortalPncp < totalPageComprasnet
-        ? totalPageComprasnet
-        : totalPagePortalPncp;
-
-    let dataBiddings = [];
+    console.log("Total de pagínas:", totalPageComprasnet);
+    console.log("Pagina:", pagina);
     let data = [];
-    let count = 1;
+    // @ts-ignore
+    let pg = `${pagina}`;
+    const promiseDados = [];
 
-    if (pagina <= totalPageComprasnet && dt_inicio !== "") {
-      for (let i = count; i <= 1; i++) {
-        const dataBidding = await axios.default
-          .get(
-            urlGetBiddingComprasnet(dt_inicio, dt_fim, pagina, uasg, edital),
-            {
-              responseType: "json",
-              charset: "utf-8",
-              responseEncodig: "utf-8",
-            }
-          )
-          .then((html) => {
-            const $ = chr.load(html.data, { decodeEntities: false });
-            const data = [];
-            const textTotalBiddings = $(".td_titulo_campo").text();
-            const totalBiddings = textTotalBiddings
-              .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
-              .replace(/[^0-9]/g, "")
-              .trim();
-            //console.log(totalBiddings);
-            total = parseInt(totalBiddings);
-            totalPage = Math.ceil(parseFloat(total / 10));
+    promiseDados.push(
+      axios.default
+        .get(urlGetBiddingComprasnet(dt_inicio, dt_fim, pg, uasg, edital))
+        .then((html) => {
+          const $ = chr.load(html.data);
+          const dadosComprasnet = [];
+          $(".tex3")
+            .children("td")
+            // @ts-ignore
+            .each((i, el) => {
+              const extractNumUasg = $(el)
+                .find("b:nth-child(1)")
+                .text()
+                .replace(/[^0-9]/g, "");
+              const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
+              const extractNumPregao = $(el)
+                .find("b:nth-child(3)")
+                .text()
+                .replace(/[^a-zA-Z0-9]/g, "");
+              const dados = {
+                uasg,
+                edital: extractNumPregao
+                  .substring(10, 24)
+                  .replace(/[a-zA-Z]/g, ""),
+              };
+              dadosComprasnet.push(dados);
+            });
+          return dadosComprasnet;
+        })
+    );
 
-            $(".tex3")
-              .children("td")
-              .each((i, el) => {
-                const extractNumUasg = $(el)
-                  .find("b:nth-child(1)")
-                  .text()
-                  .replace(/[^0-9]/g, "");
-                const uasg = extractNumUasg.substring(
-                  extractNumUasg.length - 6
-                );
-                const extractNumPregao = $(el)
-                  .find("b:nth-child(3)")
-                  .text()
-                  .replace(/[^a-zA-Z0-9]/g, "");
+    const dataNewComprasnet = (await Promise.all(promiseDados)).flatMap(
+      (x) => x
+    );
+    //console.log("terminou busca no portal antigo comprasnet");
 
-                const extract_data_hs = String(el.children[23].data).replace(
-                  /[^0-9]/g,
-                  ""
-                );
-                const extract_data = String(el.children[8].data).replace(
-                  /[^0-9]/g,
-                  ""
-                );
-                const address = String(el.children[11].data);
-                const city = String(el.children[11].data)
-                  .replace(/\ufffd/gim, "")
-                  .match(
-                    /([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z]{2,}\s)?([a-z-0-9]{2,}\s\([a-z]{2}\))/gim
-                  );
-                const biddings = {
-                  _id: ID(),
-                  government: [
-                    {
-                      _id: ID(),
-                      cnpj: "000000000",
-                      name: "",
-                      code_government: uasg,
-                      manager: true,
-                      address: [
-                        {
-                          _id: ID(),
-                          zip_code: "",
-                          complement: "",
-                          street: el.children[11].data,
-                          number: String(el.children[11].data)
-                            .toUpperCase()
-                            .substring(
-                              String(el.children[11].data).indexOf(","),
-                              String(el.children[11].data).indexOf(",") + 10
-                            )
-                            .replace(/[^0-9]/g, "")
-                            .trim(),
-                          district: "",
-                          city: String(city)
-                            .substring(0, String(city).length - 4)
-                            .trim(),
-                          type_address: "LICITAÇÃO",
-                          uf: String(el.children[11].data)
-                            .substring(
-                              String(address).length - 4,
-                              String(address).length
-                            )
-                            .replace(/[^a-zA-Z]/g, "")
-                            .trim(),
-                        },
-                      ],
-                      contact: [
-                        {
-                          _id: ID(),
-                          name: "COMPRAS",
-                          sector: "LICITAÇÃO",
-                          contact: String(el.children[14].data).replace(
-                            /[^0-9]/g,
-                            ""
-                          ),
-                          tipo: "TEL",
-                        },
-                      ],
-                    },
-                  ],
-                  reference_term: {
-                    validity: "",
-                    guarantee: "",
-                    deadline: "",
-                    itens: [],
-                  },
-                  process_data: {
-                    status: "Cadastrar proposta",
-                    type_dispute: "Menor preço unitário",
-                    modality: "PE",
-                    portal: "COMPRASNET",
-                    n_process: extractNumPregao
-                      .substring(10, 22)
-                      .replace(/[a-zA-Z]/g, ""),
-                    bidding_notice: extractNumPregao
-                      .substring(10, 22)
-                      .replace(/[a-zA-Z]/g, ""),
-                    date_finish:
-                      extract_data_hs.substring(4, 8) +
-                      "-" +
-                      extract_data_hs.substring(2, 4) +
-                      "-" +
-                      extract_data_hs.substring(0, 2),
-                    object: String(el.children[5].data).trim(),
-                    hours_finish:
-                      extract_data_hs.substring(8, 10) +
-                      ":" +
-                      extract_data_hs.substring(10, 12),
-                    date_init: String(el.children[20].data)
-                      .replace(/[^0-9]/gim, "")
-                      .substring(0, 8)
-                      .replace(/([0-9]{2})([0-9]{2})([0-9]{4})/g, "$3-$2-$1")
-                      .trim(),
-                  },
-                };
-                data.push(biddings);
-              });
-            dataBiddings.push(...data);
-            //console.log(dataBiddings,i);
-            return dataBiddings;
-          });
-        data = dataBidding;
-      }
+    const filterDataSet = dataNewComprasnet.map(async (response) => {
+      const result = await getBiddingsNoticesPNCPForUasg(response.uasg);
+      const ds = result?.biddings.flatMap((x) => x);
+      const filterData = ds?.filter((d) => d.edital.includes(response.edital));
+      return filterData;
+    });
 
-      for (let i = 0; i < data.length; i++) {
-        const uasg = data[i].government[0].code_government;
-
-        const nameGovernment = await extractNameGovernment(uasg).then(
-          (data) => {
-            return data;
-          }
-        );
-
-        data[i].government[0].name = nameGovernment.replace(/\n/g, "").trim();
-      }
-
-      for (let i = 0; i < data.length; i++) {
-        const uasg = data[i].government[0].code_government;
-        const pregao = data[i].process_data.bidding_notice;
-        const { totalPages, totalItems } = await extractItemsBidding(
-          uasg,
-          pregao,
-          1
-        ).then((data) => data);
-        const item = [];
-        for (let t = 1; t <= parseInt(totalPages); t++) {
-          const itens = await extractItemsBidding(uasg, pregao, t).then(
-            (data) => {
-              item.push(...data.itens);
-              return item;
-            }
-          );
-          //console.log(itens);
-          data[i].reference_term.itens = itens; //items;
+    const biddingPromise = await Promise.all(filterDataSet);
+    const result = biddingPromise.flatMap((f) => f);
+    const dataSet = [];
+    if (result.length > 0) {
+      for (let i = 0; i < result.length; i++) {
+        // @ts-ignore
+        const ds = await getDataBiddingPortalPncp(result[i].code_pncp);
+        if (ds) {
+          dataSet.push(ds[0]);
         }
       }
+      if (dataSet.length > 0) {
+        data = dataSet;
+      }
     }
+    console.log("finalizou comprasnet");
+    if (pagina <= 1 && dt_inicio !== "") {
+      const dataSetFinish = await Promise.all([
+        dataSetPortalComprasPublicas(req.body, 1),
+        getDataPCNP("1", "1000", dt_inicio, dt_fim),
+      ]);
+      data = dataSetFinish.flatMap((f) => f);
+      console.log("finalizou pncp e compras publicas");
 
-    if (pagina <= totalPagePortalPncp && dt_inicio !== "") {
-      console.log("pagina pncp:", pagina + " - " + totalPagesPncp);
-      const dataPncp = await getDataPCNP(pagina, "10", dt_inicio, dt_fim);
-      dataPncp?.data?.map((item) => {
-        const result = {
-          _id: item._id,
-          process_data: item.process_data,
-          government: item.government,
-          reference_term: {
-            itens: item.reference_term.itens.filter((item) => {
-              return keywords.some((keyword) =>
-                String(item.description).toUpperCase().includes(keyword)
-              );
-            }),
-          },
-        };
-        data.push(result);
-      });
+      //const dataPncp = await getDataPCNP("1", "1000", dt_inicio, dt_fim);
+      //data = dataPncp || [];
+
+      // const dataSetComprasPublicas = await dataSetPortalComprasPublicas(
+      //  req.body,
+      //   1
+      // );
+
+      // dataSetComprasPublicas.map((result) => data.push(result));
     }
-
-    if (parseInt(pagina) <= 1 && uasg === "") {
-      const dataBidding = await getDataBiddingPortalBec();
-      const filteredData = dataBidding.filter((items, i) =>
-        keywords.some((keyword) =>
-          String(
-            items.reference_term.itens.map((item) => item.description)
-          ).includes(keyword)
-        )
-      );
-
-      filteredData.map((item) => {
-        const result = {
-          _id: item._id,
-          process_data: item.process_data,
-          government: item.government,
-          reference_term: {
-            itens: item.reference_term.itens.filter((item) => {
-              return keywords.some((keyword) =>
-                String(item.description).toUpperCase().includes(keyword)
-              );
-            }),
-          },
-        };
-        data.push(result);
-      });
-      const dataSetComprasPublicas = await dataSetPortalComprasPublicas(
-        req.body,
-        1
-      );
-      dataSetComprasPublicas.map((result) => data.push(result));
-    }
-
+    console.log("finalizou");
     res
       .status(StatusCodes.OK)
-      .json({ data, total_biddings: total, total_pages: totalPg });
+      .json({ data, total_biddings: total, total_pages: totalPageComprasnet });
   } catch (error) {
     console.error(error);
     res.status(404).json({ error: error.message });
   }
 }
+// @ts-ignore
+/**
+ * @param {{ query: { n_uasg: any; n_pregao: any; n_page: any; }; }} req
+ * @param {{ status: (arg0: number) => { (): any; new (): any; json: { (arg0: { items?: { itens: any[]; totalItems: any; totalPages: any; error?: undefined; } | { error: any; itens?: undefined; totalItems?: undefined; totalPages?: undefined; }; error?: any; }): void; new (): any; }; }; }} res
+ * @param {any} next
+ */
+// @ts-ignore
 async function getItemsBiddings(req, res, next) {
   try {
     const uasg = req.query.n_uasg;
@@ -318,6 +165,7 @@ async function getItemsBiddings(req, res, next) {
     res.status(404).json({ error: error.message });
   }
 }
+
 /**
  *
  * @param {string} dataInicio  Data Inicial
@@ -410,59 +258,68 @@ const extractItemsBidding = async (uasg, pregao, pagina) => {
       amountItems -= 1;
     }
 
-    data.each((i, el) => {
-      if (i >= amountItems) return;
-      const descriptionItems = [];
-      descriptionItems.push(String(el.children[0].data));
-      const keywords = [
-        "ELETRODO",
-        "ARAME MIG",
-        "ELETRODOS",
-        "SOLDA",
-        "SOLDAGEM",
-        "DISCO DE CORTE",
-        "PARAFUSADEIRA",
-        "TOCHA",
-        "COMPRESSOR",
-        "REGULADOR",
-        "CILINDRO",
-        "FURADEIRA",
-      ];
+    data.each(
+      (
+        /** @type {number} */ i,
+        /** @type {{ children: { data: any; }[]; prev: { prev: { children: any[]; }; }; }} */ el
+      ) => {
+        if (i >= amountItems) return;
+        const descriptionItems = [];
+        descriptionItems.push(String(el.children[0].data).normalize("NFC"));
+        const keywords = [
+          "ELETRODO",
+          "ARAME",
+          "ELETRODOS",
+          "SOLDA",
+          "SOLDAGEM",
+          "DISCO",
+          "PARAFUSADEIRA",
+          "TOCHA",
+          "COMPRESSOR",
+          "REGULADOR",
+          "CILINDRO",
+          "FURADEIRA",
+          "EQUIPAMENTOS",
+          "VARETA",
+        ];
+        //console.log(descriptionItems);
+        const filteredDescriptionItems = descriptionItems.filter((item) => {
+          return keywords.some((keyword) =>
+            item.toUpperCase().includes(keyword)
+          );
+        });
 
-      const filteredDescriptionItems = descriptionItems.filter((item) => {
-        return keywords.some((keyword) => item.toUpperCase().includes(keyword));
-      });
+        if (filteredDescriptionItems.length <= 0) return;
 
-      if (filteredDescriptionItems.length <= 0) return;
-
-      const item = {
-        _id: ID(),
-        cod: String($(el.prev.prev.children[0]).text()).replace(
-          /[^0-9]/gim,
-          ""
-        ),
-        lote: "",
-        amount:
-          parseInt(String(el.children[8].data).replace(/[^0-9]/g, "")) || "",
-        unit: String(el.children[10].data)
-          .replace("Unidade de fornecimento: ", "")
-          .trim(),
-        description: el.children[0].data,
-        brand: "",
-        model: "",
-        unitary_value: {
-          $numberDecimal: "0",
-        },
-        value_reference: {
-          $numberDecimal: "0",
-        },
-        winner: "false",
-        item_balance: 0,
-        origination: "",
-      };
-
-      itens.push(item);
-    });
+        const item = {
+          _id: ID(),
+          cod: String($(el.prev.prev.children[0]).text()).replace(
+            /[^0-9]/gim,
+            ""
+          ),
+          lote: "",
+          amount:
+            parseInt(String(el.children[8].data).replace(/[^0-9]/g, "")) || "",
+          unit: String(el.children[10].data)
+            .replace("Unidade de fornecimento: ", "")
+            .trim(),
+          description: el.children[0].data,
+          brand: "",
+          model: "",
+          unitary_value: {
+            $numberDecimal: "0",
+          },
+          value_reference: {
+            $numberDecimal: "0",
+          },
+          winner: "false",
+          item_balance: 0,
+          origination: "",
+        };
+        // console.log(item);
+        itens.push(item);
+      }
+    );
 
     return { itens, totalItems, totalPages };
   } catch (error) {
@@ -492,6 +349,7 @@ const htmlItemsBidding = async (uasg, pregao, pagina) => {
       headersList,
       data: bodyContent,
     };
+    // @ts-ignore
     let response = await axios.request(reqOptions);
     // console.log(response);
     const $ = chr.load(response.data);
@@ -500,9 +358,15 @@ const htmlItemsBidding = async (uasg, pregao, pagina) => {
     return error.message;
   }
 };
-const totalPageAndItems = async (uasg, pregao, pagina) => {
+// @ts-ignore
+const totalPageAndItems = async (
+  /** @type {string} */ uasg,
+  /** @type {string} */ pregao,
+  // @ts-ignore
+  /** @type {number} */ pagina
+) => {
   try {
-    const $ = await htmlItemsBidding(uasg, pregao, 1).then((result) => {
+    const $ = await htmlItemsBidding(uasg, pregao, "1").then((result) => {
       return result;
     });
     const amountItems = $(".tex3b + table > tbody > tr").length;
@@ -518,7 +382,9 @@ const totalPageAndItems = async (uasg, pregao, pagina) => {
       const textTotalPage = String($(".tex3").text()).match(
         /P\ufffdgina\s[0-9]+\sde\s[0-9]+/gim
       );
+      // @ts-ignore
       totalItems = String(text[0].replace(/[^0-9]/gim, ""));
+      // @ts-ignore
       const totalPages = textTotalPage[0].replace(/[^0-9]/gim, "").substring(1);
       return {
         totalItems: parseInt(totalItems),
@@ -532,29 +398,68 @@ const totalPageAndItems = async (uasg, pregao, pagina) => {
     return error;
   }
 };
-const extractNameGovernment = async (uasg) => {
-  let nameGovernment = "";
-  //const url = `http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp`;
-  let headersList = {
-    Accept: "*/*",
-    "Content-Type": "application/x-www-form-urlencoded",
-  };
-  let bodyContent = `codigo=${uasg}`;
-  let reqOptions = {
-    url: "http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp",
-    method: "POST",
-    headers: headersList,
-    data: bodyContent,
-  };
-  let response = await axios.request(reqOptions);
-  const $ = chr.load(response.data);
-  nameGovernment = String(
-    $(".td").find("tr:nth-child(2)>td:nth-child(2)").text()
-  ).replace(/\s\n/g, "");
-  return nameGovernment;
-};
+// @ts-ignore
+// const extractNameGovernment = async (/** @type {any} */ uasg) => {
+//   // let nameGovernment = "";
+//   //const url = `http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp`;
+//   // let headersList = {
+//   //   Accept: "*/*",
+//   //   "Content-Type": "application/x-www-form-urlencoded",
+//   // };
+//   // let bodyContent = `codigo=${uasg}`;
+
+//   // let reqOptions = {
+//   //   url: "http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp",
+//   //   method: "POST",
+//   //   headers: headersList,
+//   //   data: bodyContent,
+//   // };
+//   // @ts-ignore
+//   //let response = await axios.request(reqOptions);
+//   let response = await axios.default.get(
+//     "http://comprasnet.gov.br/livre/uasg/Catalogo_Resp.asp"
+//   );
+
+//   const $ = chr.load(response.data);
+
+//   const table = $(".td");
+//   const tableData = [];
+
+//   // Iterando sobre as linhas da tabela
+//   $(table)
+//     .find("tr")
+//     .slice(1)
+//     // @ts-ignore
+//     .each((i, row) => {
+//       // Objeto para armazenar os dados de cada linha
+//       const rowData = {};
+
+//       // Iterando sobre as colunas da linha
+//       $(row)
+//         .find("td")
+//         .each((j, cell) => {
+//           // Adicionando o conteúdo da célula ao objeto rowData
+//           rowData[`column_${j}`] = $(cell).text().trim();
+//         });
+
+//       // Adicionando os dados da linha ao array tableData
+//       tableData.push(rowData);
+//     });
+
+//   // nameGovernment = String(
+//   //   $(".td").find("tr:nth-child(2)>td:nth-child(2)").text()
+//   // ).replace(/\s\n/g, "");
+//   //console.log(tableData[0]);
+//   //return nameGovernment;
+//   return tableData;
+// };
+
+/**
+ * @param {{ body: any; }} req
+ * @param {{ status: (arg0: number) => { (): any; new (): any; json: { (arg0: any): void; new (): any; }; }; }} res
+ */
 async function registerProposalComprasnet(req, res) {
-  console.log(req.body);
+  //console.log(req.body);
   try {
     const url =
       "https://mdw.minha.effecti.com.br/api-integracao/v1/proposta/comprasnet";
@@ -564,6 +469,7 @@ async function registerProposalComprasnet(req, res) {
       Authorization: authorization,
       "Content-Type": "application/json",
     };
+    //const data = JSON.stringify(req.body);
     const bodyContent = req.body;
     const reqOptions = {
       url: url,
@@ -571,139 +477,169 @@ async function registerProposalComprasnet(req, res) {
       headers: headersList,
       data: bodyContent,
     };
+    // @ts-ignore
+    // @ts-ignore
     const response = await axios.default
       .request(reqOptions)
       .then((response) => {
-        //console.log(response);
+        // console.log(response);
         return res.status(200).json(response.data);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        console.log(err);
         return res.status(400).json(err.response);
       });
   } catch (error) {
-    //console.log(error.message);
+    console.log(error);
     res.status(500).json(error);
   }
 }
-//RETORNA TODAS AS LICITAÇÕES
-async function getBiddingsNoticesPNCP(
-  pagina,
-  pageLength,
-  dateInit,
-  dateFinish
-) {
+
+/************************LICITAÇÕES PNCP******************************/
+
+async function getBiddingsNoticesPNCPForUasg(uasg) {
   try {
-    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=${pageLength}&status=recebendo_proposta&modalidades=6|8`;
+    const url = `https://pncp.gov.br/api/search/?q=${uasg}&tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=100&status=recebendo_proposta`;
     const response = await axios.default
       .get(url)
       .then((result) => {
-        const dateInitial =
-          String(dateInit).substring(6, 10) +
-          "-" +
-          String(dateInit).substring(3, 5) +
-          "-" +
-          String(dateInit).substring(0, 2);
-        const dateFinaly =
-          String(dateFinish).substring(6, 10) +
-          "-" +
-          String(dateFinish).substring(3, 5) +
-          "-" +
-          String(dateFinish).substring(0, 2);
-        const dateFilter = [dateInitial, dateFinaly];
-        const dataBidding = result.data.items.filter((item) =>
-          dateFilter.some((date) =>
-            String(item.data_publicacao_pncp).slice(0, 10).includes(date)
-          )
-        );
+        /** @type {Data} */
         const data = {
-          items: dataBidding,
+          items: result.data.items,
           total: result.data.total,
         };
-        //console.log(data.items);
+
         return data;
       })
       .catch((error) => {
         console.log(error);
         return error.message;
       });
-    const total = response.total;
-    // console.log(response.items);
-    const biddings = response.items.map((item) => {
-      //const items_biddings = await axios.get();
-      return {
-        cnpj: item.orgao_cnpj,
-        edital: String(item.title)
-          .replace(/[^0-9]/gi, "")
-          .trim(),
-        orgao: item.orgao_nome,
-        numero_sequencial: item.numero_sequencial,
-      };
-    });
-    // console.log(biddings);
+    /**
+     * @type {number} total
+     */
+    const total = parseInt(response.total) ?? 0;
+    /** @type {Array<BidItem>} */
+    const biddings = response.items.map(
+      (
+        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
+      ) => {
+        /**
+         * @type {BidItem}
+         */
+        const bidding = {
+          cnpj: item.orgao_cnpj,
+          edital: String(item.title)
+            .replace(/[^0-9]/gi, "")
+            .trim(),
+          orgao: item.orgao_nome,
+          numero_sequencial: item.numero_sequencial,
+          ano: item.ano,
+          code_pncp: item.numero_controle_pncp,
+        };
+
+        return bidding;
+      }
+    );
     return { biddings, total };
   } catch (error) {
     console.log(error);
   }
 }
-//RETORNA AS INFORMAÇÕES GERAIS DOS EDITAIS
-async function getDataBiddingsPNCP(cnpj, code) {
+
+/**
+ * @typedef {Object} BidItem
+ * @property {string} cnpj - O CNPJ do órgão.
+ * @property {string} edital - O título do edital.
+ * @property {string} orgao - O nome do órgão.
+ * @property {string} numero_sequencial - O número sequencial.
+ * @property {string} ano - ano da licitação.
+ * @property {string} code_pncp - ano da licitação.
+ */
+
+/**
+ * @typedef {Object} Data
+ * @property {Array} items - Os itens do array.
+ * @property {string} total - O total de itens .
+ */
+
+/**
+ * @description Função para buscar licitações no portal PNCP
+ * @param {string} pagina numero da paginação
+ * @param {string} pageLength total de paginas
+ * @param {string} dateInit data inicial ex. 00/00/0000
+ * @param {string} dateFinish data final ex. 00/00/0000
+ * @returns array objeto json
+ */
+async function getBiddingsNoticesPNCP(
+  pagina,
+  // @ts-ignore
+  pageLength,
+  dateInit,
+  // @ts-ignore
+  dateFinish
+) {
   try {
-    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}`;
-    const data = await axios.default
+    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=1000&status=recebendo_proposta&modalidades=6|8`;
+    const response = await axios.default
       .get(url)
       .then((result) => {
-        // console.log(result.data);
-        return result.data;
+        const dataBidding = result.data.items.filter(
+          (
+            /** @type {{ data_publicacao_pncp: string;createdAt:string }} */ item
+          ) =>
+            item.createdAt.includes(converterData(dateInit).toString()) ||
+            item.createdAt.includes(converterData(dateFinish).toString())
+        );
+        /** @type {Data} */
+        const data = {
+          items: dataBidding,
+          total: result.data.total,
+        };
+        return data;
       })
       .catch((error) => {
-        //console.log(error);
+        console.log(error);
         return error.message;
       });
-    return data;
-  } catch (error) {
-    //console.log(error);
-    return error;
-  }
-}
-//RETORNA A QUANTIDADE DE ITENS
-async function getBiddingsTotalItemsPNCP(cnpj, code) {
-  try {
-    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}/itens/quantidade`;
-    const totalItens = await axios.default
-      .get(url)
-      .then((result) => {
-        //console.log(result.data);
-        return result.data;
-      })
-      .catch((error) => {
-        //console.log(error);
-        return error.message;
-      });
-    return totalItens;
-  } catch (error) {
-    //console.log(error);
-    return error;
-  }
-}
-//RETORNA OS ITENS
-async function getBiddingsItemsPNCP(cnpj, code, amoutItems) {
-  try {
-    const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/2023/${code}/itens?pagina=1&tamanhoPagina=${amoutItems}`;
-    const Items = await axios.default
-      .get(url)
-      .then((result) => {
-        return result.data;
-      })
-      .catch((error) => {
-        //console.log(error);
-        return error.message;
-      });
-    return Items;
+    /**
+     * @type {number} total
+     */
+    const total = parseInt(response.total) ?? 0;
+    /** @type {Array<BidItem>} */
+    const biddings = response.items.map(
+      (
+        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
+      ) => {
+        /**
+         * @type {BidItem}
+         */
+        const bidding = {
+          cnpj: item.orgao_cnpj,
+          edital: String(item.title)
+            .replace(/[^0-9]/gi, "")
+            .trim(),
+          orgao: item.orgao_nome,
+          numero_sequencial: item.numero_sequencial,
+          ano: item.ano,
+          code_pncp: item.numero_controle_pncp,
+        };
+        return bidding;
+      }
+    );
+    return { biddings, total };
   } catch (error) {
     console.log(error);
   }
 }
+/**
+ * @description Obtém todos os dados da licitação
+ * @param {string} pagina numeroda da pagina
+ * @param {string} pageLength total de dados a retonar
+ * @param {string} dateInit data inicial
+ * @param {string} dateFinish data final
+ * @returns Organiza os dados em um único array
+ */
 const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
   try {
     const data = await getBiddingsNoticesPNCP(
@@ -712,122 +648,52 @@ const getDataPCNP = async (pagina, pageLength, dateInit, dateFinish) => {
       dateInit,
       dateFinish
     );
-    const total = Math.ceil(parseInt(data.total) / 10);
-    const dataBidding = data.biddings.slice(0, 10);
-    //console.log("total de licitaçoes:" + dataBidding.length); // Limita a 10 itens
-    const formattedBiddings = await Promise.all(
-      dataBidding.map(async (bidding) => {
-        const { cnpj, numero_sequencial } = bidding;
-        const element = await getDataBiddingsPNCP(cnpj, numero_sequencial);
-        //console.log(element);
-        const totalItens = await getBiddingsTotalItemsPNCP(
-          cnpj,
-          numero_sequencial
-        );
-        const itens = await getBiddingsItemsPNCP(
-          cnpj,
-          numero_sequencial,
-          totalItens
-        ).catch((err) => {
-          console.log(err);
-        });
-        // console.log("total de itens:" + itens.length);
-        const items = itens.map((item) => {
-          const filterItens = {
-            _id: ID(),
-            cod: item.numeroItem,
-            lote: "",
-            amount: item.quantidade,
-            unit: item.unidadeMedida,
-            description: item.descricao,
-            brand: "",
-            model: "",
-            unitary_value: item.valorUnitarioEstimado,
-            value_reference: 0,
-            winner: "false",
-            item_balance: 0,
-          };
-          return filterItens;
-        });
-        const biddings = {
-          _id: ID(),
-          process_data: {
-            status: "Cadastrar proposta",
-            type_dispute: "",
-            modality:
-              element.modalidadeId === 8
-                ? "DL"
-                : element.modalidadeId === 6
-                ? "PE"
-                : "PE",
-            portal: checkPortalPncp(element.usuarioNome),
-            n_process: element.processo,
-            bidding_notice: element.numeroCompra + element.anoCompra,
-            date_finish: String(element.dataEncerramentoProposta).slice(0, 10),
-            date_init: String(element.dataAberturaProposta).slice(0, 10),
-            hours_finish: String(element.dataEncerramentoProposta).slice(
-              11,
-              17
-            ),
-            object: element.objetoCompra,
-          },
-          government: [
-            {
-              _id: ID(),
-              name: element.orgaoEntidade.razaoSocial,
-              cnpj: element.orgaoEntidade.cnpj,
-              code_government: element.unidadeOrgao.codigoUnidade,
-              manager: "true",
-              address: [
-                {
-                  id: ID(),
-                  type_address: "LICITACAO",
-                  street: "",
-                  number: "",
-                  district: "",
-                  zip_code: "",
-                  uf: element.unidadeOrgao.ufSigla,
-                  city: element.unidadeOrgao.municipioNome,
-                  complement: "",
-                },
-              ],
-              contact: [
-                {
-                  id: ID(),
-                  tipo: "TEL",
-                  name: "",
-                  sector: "",
-                  contact: "",
-                },
-              ],
-            },
-          ],
-          reference_term: {
-            validity: "",
-            guaranteed: "",
-            deadline: "",
-            itens: items,
-          },
-        };
-        return {
-          biddings,
-        };
-      })
-    );
-    return {
-      data: formattedBiddings.map(({ biddings }) => ({ ...biddings })),
-      totalPagesPncp: total,
-    };
+    // @ts-ignore
+    const ds = [];
+
+    if (data) {
+      for (let i = 0; i < data.biddings.length; i++) {
+        ds.push(await getDataBiddingPortalPncp(data.biddings[i].code_pncp));
+      }
+      // @ts-ignore
+      return ds.flatMap((x) => x);
+    }
+    // return [];
   } catch (error) {
     console.log(error);
-    return { error };
+    return [{ error }];
   }
 };
-const checkPortalPncp = (portal) => {
-  if (portal === "Compras.gov.br") {
-    return "COMPRASNET";
-  } else {
-    return portal;
+/**
+ * @description converte  uma data no formato DD/MM/AAAA para AAAA-MM-DD
+ * @param {string} data data no formato DD/MM/AAAA
+ * @returns retorna a data formatada
+ */
+function converterData(data) {
+  // Dividir a string da data em partes (dia, mês e ano) usando a barra como separador
+  const partes = data.split("/");
+  // Reorganizar as partes no formato AAAA-MM-DD
+  const dataFormatada =
+    partes[2] +
+    "-" +
+    partes[1].padStart(2, "0") +
+    "-" +
+    partes[0].padStart(2, "0");
+  return dataFormatada;
+}
+/**
+ *
+ * @param {{ body: any; }} req
+ * @param {*} res
+ */
+const getDataBiddingsPncp = async (req, res) => {
+  try {
+    const data = await getDataBiddingPortalPncp(req.body.codePncp);
+    //console.log(data);
+    res.status(200).json(data);
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ error: "Erro ao solicitar os dados" });
   }
 };
 
@@ -835,14 +701,5 @@ module.exports = {
   getDataBiddings,
   getItemsBiddings,
   registerProposalComprasnet,
+  getDataBiddingsPncp,
 };
-
-//SITE KEY
-//93b08d40-d46c-400a-ba07-6f91cda815b9
-//93b08d40-d46c-400a-ba07-6f91cda815b9
-//https://newassets.hcaptcha.com/captcha/v1/7d69057/static/hcaptcha.html#frame=checkbox&id=04yljyqmjz9&host=sso.acesso.gov.br&sentry=true&reportapi=https%3A%2F%2Faccounts.hcaptcha.com&recaptchacompat=off&custom=false&hl=pt-BR&tplinks=on&sitekey=93b08d40-d46c-400a-ba07-6f91cda815b9&theme=light&origin=https%3A%2F%2Fsso.acesso.gov.br&size=invisible
-//`hcaptchaHabilitado: true
-// hcaptchaSiteKey:"b8bbded1-9d04-4ace-9952-b67cde081a7b"
-// recaptchaHabilitado: false
-// recaptchaSiteKey: "6LeFY7UUAAAAANq3IRQtuH9hQFugmh_OR9OlQHaW"
-// https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-fase-externa/v1/captcha/configuracao`;

@@ -5,12 +5,11 @@ const {
   getDataBiddings,
   getItemsBiddings,
   registerProposalComprasnet,
+  getDataBiddingsPncp,
 } = require("../controller/comprasnetScraping");
 
 Router.post("/biddings", authenticated, getDataBiddings);
 Router.get("/items_biddings", authenticated, getItemsBiddings);
-Router.route("/register-proposal").post((req, res) =>
-  registerProposalComprasnet(req, res)
-);
-
+Router.post("/register-proposal", authenticated, registerProposalComprasnet);
+Router.post("/biddings-pncp", getDataBiddingsPncp);
 module.exports = Router;
