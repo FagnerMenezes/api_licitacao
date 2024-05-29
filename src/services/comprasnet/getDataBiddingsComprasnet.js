@@ -98,8 +98,8 @@ const getDataBiddingsComprasnet = async (
     if (result.length > 0) {
       for (let i = 0; i < result.length; i++) {
         //     // @ts-ignore
-        //console.log(result[0].code_pncp)
-        const ds = await getDataBiddingPortalPncp(result[0].code_pncp);
+
+        const ds = await getDataBiddingPortalPncp(result[i].code_pncp);
 
         if (ds) {
           dataSet.push(ds[0]);
@@ -110,7 +110,7 @@ const getDataBiddingsComprasnet = async (
       }
     }
     const data_set = data.flatMap((data) => data);
-    //console.log(data_set)
+
     return { data: data_set, totalPages: totalPagesComprasnet }
   } catch (error) {
     console.log(error.message, "getDataBiddingsComprasnet");

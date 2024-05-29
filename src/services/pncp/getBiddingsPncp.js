@@ -1,5 +1,5 @@
-const { default: axios } = require("axios");
-const { v4: ID } = require("uuid");
+const { default: axios } = require('axios');
+const { v4: ID } = require('uuid');
 const { converterData } = require("../../util/formatDate");
 
 const keywords = [
@@ -40,6 +40,7 @@ const keywords = [
  * @param {any} dateInit data inicial
  * @param {any} dateFinish data final
  */
+
 async function getBiddingsNoticesPNCP(
   pagina,
   // @ts-ignore
@@ -101,6 +102,7 @@ async function getBiddingsNoticesPNCP(
 
       }
     );
+
     return { biddings, total };
   } catch (error) {
     console.log(error.message, "getBiddingsNoticesPNCP");
@@ -114,7 +116,7 @@ async function getBiddingsNoticesPNCP(
  * @param {string} code_pncp código de controle do portal pncp
  * @returns array objeto json
  */
-async function getBiddingsNoticesPNCP(code_pncp) {
+async function getBiddingsNoticesCodePNCP(code_pncp) {
   try {
 
     const url = `https://pncp.gov.br/api/search/?q=${code_pncp}&tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=1&status=todos`;
@@ -416,8 +418,8 @@ const checkPortalPncp = async (portal) => {
 const getDataBiddingPortalPncp = async (code) => {
   try {
 
-    const data = await getBiddingsNoticesPNCP(code);
-
+    const data = await getBiddingsNoticesCodePNCP(code);
+    //console.log(data.biddings)
     if (data.total > 0) {
       const promises = data.biddings.map(async (bidding) => {
         const biddingInfoPromise = getDataBiddingsPNCP(
@@ -522,7 +524,7 @@ const getDataPCNP = async (
     );
     // @ts-ignore
     const ds = [];
-
+    console.log(data.biddings.length)
     //if (data.total > 0) {
     // @ts-ignore
     for (let i = 0; i < data?.biddings?.length; i++) {

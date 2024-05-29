@@ -1,4 +1,5 @@
 const { dataSetPortalComprasPublicas } = require("../comprasPublicas/getBiddingsNotices");
+const { getDataBiddingsComprasnet } = require("../comprasnet/getDataBiddingsComprasnet");
 const { getDataPCNP } = require("../pncp/getBiddingsPncp");
 
 /**
@@ -7,20 +8,22 @@ const { getDataPCNP } = require("../pncp/getBiddingsPncp");
  */
 async function getDataBidding(dataBody) {
     try {
-        const { pagina, dt_inicio, dt_fim } = dataBody;
+        const { pagina, uasg, edital, dt_inicio, dt_fim } = dataBody;
         let data = [];
         let total = 0;
-        // const totalPageComprasnet = 0;
 
-        //if (pagina <= 1 && dt_inicio !== "") {
-        const dataSetFinish = await Promise.all([
-            getDataPCNP("1", "1000", dt_inicio, dt_fim),
-            dataSetPortalComprasPublicas(dataBody, 1)
-        ]);
-        data = dataSetFinish.flatMap((f) => f);
-        console.log("finalizou");
-        // }
-        return { data, total, total_pages: 0 };
+        if (uasg !== '' || edital !== '') {
+            const ds = await getDataBiddingsComprasnet(dataBody)
+            return { data: ds.data, total, total_pages: 0 }
+        } else {
+            const dataSetFinish = await Promise.all([
+                getDataPCNP("1", "1000", dt_inicio, dt_fim),
+                dataSetPortalComprasPublicas(dataBody, 1)
+            ]);
+            data = dataSetFinish.flatMap((f) => f);
+            console.log("finalizou");
+            return { data, total, total_pages: 0 };
+        }
     } catch (error) {
         console.error(error.message, "getDataBidding");
         return [];

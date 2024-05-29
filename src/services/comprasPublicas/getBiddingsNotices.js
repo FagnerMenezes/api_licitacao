@@ -97,7 +97,7 @@ const dataSetPortalComprasPublicas = async (body, pagina) => {
       return biddings;
     });
     const ds = await Promise.all(dataSet.map(async (data) => await data));
-
+    //console.log('compras publicas:',ds.length)
     return ds;
   } catch (error) {
     console.log(error, "dataSetPortalComprasPublicas");
