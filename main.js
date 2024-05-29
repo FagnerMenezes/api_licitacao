@@ -10,9 +10,9 @@ const empenho = require("./src/routers/empenhos");
 const modalidade = require("./src/routers/modalidades");
 const tipo_disputa = require("./src/routers/tipoDisputa");
 const status = require("./src/routers/status");
-const bec = require("./src/routers/bec");
-const comprasnet = require("./src/routers/comprasnet");
+const biddingsNotices = require("./src/routers/biddingsNotices");
 const users = require("./src/routers/users");
+const registerProposal = require("./src/routers/registerProposal");
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -26,9 +26,9 @@ app.use("/processos", processo);
 app.use("/modalidades", modalidade);
 app.use("/tipo_disputa", tipo_disputa), app.use("/status", status);
 app.use("/empenhos", empenho);
-app.use("/bec", bec);
-app.use("/comprasnet", comprasnet);
+app.use("/biddingsNotices", biddingsNotices);
 app.use("/users", users);
+app.use("/registerProposal", registerProposal);
 
 const port = 21052 || 3000;
 app.listen(port, (err) => {

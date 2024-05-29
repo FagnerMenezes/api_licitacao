@@ -32,36 +32,34 @@ const keywords = [
 
 /**
  * @description Função para buscar licitações no portal PNCP
- * @param {string} code_pncp numero da paginação data final ex. 00/00/0000
+ * @param {string} code_pncp código de controle do portal pncp
  * @returns array objeto json
  */
 async function getBiddingsNoticesPNCP(code_pncp) {
   try {
-    // console.log(code_pncp);
+
     const url = `https://pncp.gov.br/api/search/?q=${code_pncp}&tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=1&status=todos`;
     const response = await axios
       .get(url)
       .then((result) => {
-        //console.log(result.data.items);
         const dataBidding = result.data.items;
         /** @type {Data} */
         const data = {
           items: dataBidding,
           total: result.data.total,
         };
-        //console.log(data);
         return data;
       })
       .catch((error) => {
-        //console.log(error);
-        return error.message;
+        console.log(error.message);
+
       });
     /**
      * @type {number} total
      */
     const total = parseInt(response.total) ?? 0;
     /** @type {Array<BidItem>} */
-    const biddings = response.items.map(
+    const biddings = response?.items?.map(
       (
         /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string }} */ item
       ) => {
@@ -83,7 +81,7 @@ async function getBiddingsNoticesPNCP(code_pncp) {
     );
     return { biddings, total };
   } catch (error) {
-    console.log(error);
+    console.log(error.message, "getBiddingsNoticesPNCP");
   }
 }
 
@@ -108,8 +106,8 @@ async function getDataBiddingsPNCP(cnpj, code, year) {
               element.data.modalidadeId === 8
                 ? "DL"
                 : element.data.modalidadeId === 6
-                ? "PE"
-                : "PE",
+                  ? "PE"
+                  : "PE",
             portal: await checkPortalPncp(element.data.usuarioNome),
             n_process: element.data?.processo,
             bidding_notice:
@@ -166,6 +164,7 @@ async function getDataBiddingsPNCP(cnpj, code, year) {
       });
     return data;
   } catch (error) {
+    console.log(error.message, "getDataBiddingsPNCP");
     return error;
   }
 }
@@ -212,14 +211,16 @@ async function getBiddingsItemsPNCP(cnpj, code, amoutItems, year) {
             };
           }
         );
+        //console.log(items)
         return items;
       })
       .catch((error) => {
-        return {};
+        return [];
       });
+
     return Items;
   } catch (error) {
-    console.log(error);
+    console.log(error.message, "getBiddingsItemsPNCP");
   }
 }
 
@@ -240,7 +241,7 @@ async function getEditalPncp(cnpj, code, year) {
     // console.log(response.data[0]);
     return files.length > 0 ? response.data[0].uri : null;
   } catch (error) {
-    //console.error("Erro ao obter edital:", error.message);
+    console.error(error.message, "getEditalPncp");
     return "";
   }
 }
@@ -274,38 +275,16 @@ const checkPortalPncp = async (portal) => {
 };
 
 /**
- * @description Função para buscar licitações no portal PNCP
+ * @description Função geral para buscar licitações no portal PNCP
  * @param {string} code codigo PNCP
  * @returns array objeto json
  */
 const getDataBiddingPortalPncp = async (code) => {
   try {
+
     const data = await getBiddingsNoticesPNCP(code);
 
-    // @ts-ignore
-    //const dataAllBidding = [];
-    if (data) {
-      // for (let i = 0; i < data.biddings.length; i++) {
-      //   const biddingData = {
-      //     biddingInfo: await getDataBiddingsPNCP(
-      //       data.biddings[i].cnpj,
-      //       data.biddings[i].numero_sequencial,
-      //       data.biddings[i].ano
-      //     ),
-      //     biddingItems: await getBiddingsItemsPNCP(
-      //       data.biddings[i].cnpj,
-      //       data.biddings[i].numero_sequencial,
-      //       "1000",
-      //       data.biddings[i].ano
-      //     ),
-      //     biddingAttachment: await getEditalPncp(
-      //       data.biddings[i].cnpj,
-      //       data.biddings[i].numero_sequencial,
-      //       data.biddings[i].ano
-      //     ),
-      //   };
-      //   dataAllBidding.push(biddingData);
-      // }
+    if (data.total > 0) {
       const promises = data.biddings.map(async (bidding) => {
         const biddingInfoPromise = getDataBiddingsPNCP(
           bidding.cnpj,
@@ -332,16 +311,14 @@ const getDataBiddingPortalPncp = async (code) => {
             biddingItemsPromise,
             biddingAttachmentPromise,
           ]);
-
         return {
           biddingInfo,
           biddingItems,
           biddingAttachment,
         };
+        // }
       });
-
       const dataAllBidding = await Promise.all(promises);
-
       const dataSet = dataAllBidding.map((response) => {
         const filteredItems = response.biddingItems.filter((item) => {
           const verifyItem = verificarPalavrasChave(item.description, keywords);
@@ -370,12 +347,11 @@ const getDataBiddingPortalPncp = async (code) => {
           };
         }
       });
-      //console.log(dataSet);
       return dataSet;
     }
   } catch (error) {
-    console.log(error);
-    return { error };
+    console.log(error.message, "getDataBiddingPortalPncp");
+    return {};
   }
 };
 
