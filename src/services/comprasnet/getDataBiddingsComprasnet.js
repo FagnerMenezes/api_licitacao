@@ -50,296 +50,133 @@ const getDataBiddingsComprasnet = async (
       axios.get(url).then((html) => {
         const $ = chr.load(html.data);
 
-        //         const dadosComprasnet = [];
-        //         $(".tex3")
-        //           .children("td")
-        //           // @ts-ignore
-        //           .each((i, el) => {
-        //             const extractNumUasg = $(el)
-        //               .find("b:nth-child(1)")
-        //               .text()
-        //               .replace(/[^0-9]/g, "");
-        //             const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
-        //             const extractNumPregao = $(el)
-        //               .find("b:nth-child(3)")
-        //               .text()
-        //               .replace(/[^a-zA-Z0-9]/g, "");
-        //             const dados = {
-        //               uasg,
-        //               edital: extractNumPregao
-        //                 .substring(10, 24)
-        //                 .replace(/[a-zA-Z]/g, ""),
-        //             };
-        //             dadosComprasnet.push(dados);
-        //           });
-        //         //console.log(dadosComprasnet);
-        //         return dadosComprasnet;
-        //       })
-        //     );
+        const dadosComprasnet = [];
+        $(".tex3")
+          .children("td")
+          // @ts-ignore
+          .each((i, el) => {
+            const extractNumUasg = $(el)
+              .find("b:nth-child(1)")
+              .text()
+              .replace(/[^0-9]/g, "");
+            const uasg = extractNumUasg.substring(extractNumUasg.length - 6);
+            const extractNumPregao = $(el)
+              .find("b:nth-child(3)")
+              .text()
+              .replace(/[^a-zA-Z0-9]/g, "");
+            const dados = {
+              uasg,
+              edital: extractNumPregao
+                .substring(10, 24)
+                .replace(/[a-zA-Z]/g, ""),
+            };
+            dadosComprasnet.push(dados);
+          });
 
-        //     const dataNewComprasnet = (await Promise.all(promiseDados)).flatMap(
-        //       (x) => x
-        //     );
+        return dadosComprasnet;
+      })
+    );
 
-        //     const filterDataSet = dataNewComprasnet.map(async (response) => {
-        //       const result = await getBiddingsNoticesPNCPForUasg(response.uasg);
-        //       const ds = result?.biddings.flatMap((x) => x);
-        //       const filterData = ds?.filter((d) => d.edital.includes(response.edital));
-        //       return filterData;
-        //     });
+    const dataNewComprasnet = (await Promise.all(promiseDados)).flatMap(
+      (x) => x
+    );
 
-        //     const biddingPromise = await Promise.all(filterDataSet);
+    const filterDataSet = dataNewComprasnet.map(async (response) => {
+      const result = await getBiddingsNoticesPNCPForUasg(response.uasg);
+      const ds = result?.biddings.flatMap((x) => x);
+      const filterData = ds?.filter((d) => d.edital.includes(response.edital));
+      return filterData;
+    });
 
-        //     const result = biddingPromise.flatMap((f) => f);
+    const biddingPromise = await Promise.all(filterDataSet);
 
-        //     const dataSet = [];
+    const result = biddingPromise.flatMap((f) => f);
 
-        if (result.length > 0) {
-          //   for (let i = 0; i < result.length; i++) {
-          //     // @ts-ignore
-          //console.log(result[0].code_pncp)
-          const ds = await getDataBiddingPortalPncp(result[0].code_pncp);
+    const dataSet = [];
 
-          if (ds) {
-            dataSet.push(ds[0]);
-          }
-          //   }
-          if (dataSet.length > 0 || dataSet !== undefined) {
-            data = dataSet.filter((data) => data !== undefined);
-          }
+    if (result.length > 0) {
+      for (let i = 0; i < result.length; i++) {
+        //     // @ts-ignore
+
+        const ds = await getDataBiddingPortalPncp(result[i].code_pncp);
+
+        if (ds) {
+          dataSet.push(ds[0]);
         }
-        const data_set = data.flatMap((data) => data);
-        //console.log(data_set)
-        return data_set;
-      } catch (error) {
-        console.log(error.message, "getDataBiddingsComprasnet");
       }
-  };
+      if (dataSet.length > 0 || dataSet !== undefined) {
+        data = dataSet.filter((data) => data !== undefined);
+      }
+    }
+    const data_set = data.flatMap((data) => data);
 
-  /**
-   * @returns  o número total de paginas encontradas no comprasnet antigo
-   * @param {string} dt_inicio
-   * @param {string} dt_fim
-   *
-   */
-  // async function totalBiddings(dt_inicio, dt_fim) {
-  //   const url = urlGetBiddingComprasnet(dt_inicio, dt_fim, "1", "", "");
-  //   const data = await axios.get(url).then((html) => {
-  //     const $ = chr.load(html.data, { decodeEntities: false });
-  //     const textTotalBiddings = $(".td_titulo_campo").text();
-  //     const totalBiddings = textTotalBiddings
-  //       .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
-  //       .replace(/[^0-9]/g, "")
-  //       .trim();
-
-  //     const total = parseInt(totalBiddings);
-  //     const totalPage = Math.ceil(total / 10);
-  //     return totalPage;
-  //   });
-
-  //   return data;
-  // }
-
-  /**
-   *
-   * @param {string} dataInicio  Data Inicial
-   * @param {string} dataFim  Data final
-   * @param {string} num_pg  Numero da pagina
-   * @param {string} numUasg Numero da uasg
-   * @param {string} numPregao  Numero do pregao
-   * @returns retorna a URL formatada site comprasnet
-   */
-  // const urlGetBiddingComprasnet = (
-  //   dataInicio,
-  //   dataFim,
-  //   num_pg,
-  //   numUasg,
-  //   numPregao
-  // ) => {
-  //   try {
-  //     const date_init = dataInicio;
-  //     const date_finish = dataFim;
-  //     const num_page = num_pg;
-  //     const num_bidding = numPregao;
-  //     const num_uasg = numUasg;
-  //     const items = []; // [
-  //     const url = `http://comprasnet.gov.br/ConsultaLicitacoes/ConsLicitacao_Relacao.asp?dt_publ_ini=${date_init}&dt_publ_fim=${date_finish}&chkModalidade=5&numpag=${num_page}&Origem=F&numprp=${num_bidding}&optTpPesqMat=M&optTpPesqServ=N&txtlstUasg=${num_uasg}&txtlstMaterial=`;
-
-  return url;
-} catch (error) {
-  console.log(error.message, "function getUrl");
-  return error.message;
-}
+    return { data: data_set, totalPages: 0 }
+  } catch (error) {
+    console.log(error.message, "getDataBiddingsComprasnet");
+  }
 };
 
-const getDataPCNP = async (
-  /** @type {string} */ pagina,
-  /** @type {string} */ pageLength,
-  /** @type {any} */ dateInit,
-  /** @type {any} */ dateFinish
+/**
+ * @returns  o número total de paginas encontradas no comprasnet antigo
+ * @param {string} dt_inicio
+ * @param {string} dt_fim
+ *
+ */
+async function totalBiddings(dt_inicio, dt_fim) {
+  const url = urlGetBiddingComprasnet(dt_inicio, dt_fim, "1", "", "");
+  const data = await axios.get(url).then((html) => {
+    const $ = chr.load(html.data, { decodeEntities: false });
+    const textTotalBiddings = $(".td_titulo_campo").text();
+    const totalBiddings = textTotalBiddings
+      .substring(textTotalBiddings.length - 6, textTotalBiddings.length)
+      .replace(/[^0-9]/g, "")
+      .trim();
+
+    const total = parseInt(totalBiddings);
+    const totalPage = Math.ceil(total / 10);
+    return totalPage;
+  });
+
+  return data;
+}
+
+/**
+ *
+ * @param {string} dataInicio  Data Inicial
+ * @param {string} dataFim  Data final
+ * @param {string} num_pg  Numero da pagina
+ * @param {string} numUasg Numero da uasg
+ * @param {string} numPregao  Numero do pregao
+ * @returns retorna a URL formatada site comprasnet
+ */
+const urlGetBiddingComprasnet = (
+  dataInicio,
+  dataFim,
+  num_pg,
+  numUasg,
+  numPregao
 ) => {
   try {
-    const data = await getBiddingsNoticesPNCP(
-      pagina,
-      pageLength,
-      dateInit,
-      dateFinish
-    );
-    // @ts-ignore
-    const ds = [];
+    const date_init = dataInicio;
+    const date_finish = dataFim;
+    const num_page = num_pg;
+    const num_bidding = numPregao;
+    const num_uasg = numUasg;
+    const items = []; // [
+    const url = `http://comprasnet.gov.br/ConsultaLicitacoes/ConsLicitacao_Relacao.asp?dt_publ_ini=${date_init}&dt_publ_fim=${date_finish}&chkModalidade=5&numpag=${num_page}&Origem=F&numprp=${num_bidding}&optTpPesqMat=M&optTpPesqServ=N&txtlstUasg=${num_uasg}&txtlstMaterial=`;
 
-    if (data.total > 0) {
-      // @ts-ignore
-      for (let i = 0; i < data?.biddings?.length; i++) {
-
-        // @ts-ignore
-        ds.push(await getDataBiddingPortalPncp(data.biddings[i].code_pncp));
-
-      }
-
-      //@ts-ignore
-      const dataSet = ds.flatMap((x) => x);
-      console.log(dataSet[0])
-      return dataSet;
-    }
+    return url;
   } catch (error) {
-    console.log(error.message, "getDataPCNP");
-    //return [];
+    console.log(error.message, "function getUrl");
+    return error.message;
   }
 };
 
-/**
- * @param {any} uasg
- */
-async function getBiddingsNoticesPNCPForUasg(uasg) {
-  try {
-    const url = `https://pncp.gov.br/api/search/?q=${uasg}&tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=100&status=recebendo_proposta`;
-    const response = await axios
-      .get(url)
-      .then((result) => {
-        /** @type {Data} */
 
-        const data = {
-          items: result.data.items,
-          total: result.data.total,
-        };
-        return data;
-      })
-      .catch((error) => {
-        console.log(error.message, "getBiddingsNoticesPNCPForUasg");
-        //return [];
-      });
-    /**
-     * @type {number} total
-     */
-    const total = parseInt(response.total) ?? 0;
-    //console.log(response.items)
-    /** @type {Array<BidItem>} */
-    const biddings = response?.items?.map(
-      (
-        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
-      ) => {
-        /**
-         * @type {BidItem}
-         */
-        const bidding = {
-          cnpj: item.orgao_cnpj,
-          edital: String(item.title)
-            .replace(/[^0-9]/gi, "")
-            .trim(),
-          orgao: item.orgao_nome,
-          numero_sequencial: item.numero_sequencial,
-          ano: item.ano,
-          code_pncp: item.numero_controle_pncp,
-        };
 
-        return bidding;
-      }
-    );
-    return { biddings, total };
-  } catch (error) {
-    console.log(error.message, "getBiddingsNoticesPNCPForUasg");
-    return []
-  }
-}
-
-/**
- * @description função principal para buscar os dados no portal PNCP
- * @param {any} pagina número da paginação
- * @param {any} pageLength total de dados a serem retornados de 10 - 1000
- * @param {any} dateInit data inicial
- * @param {any} dateFinish data final
- */
-async function getBiddingsNoticesPNCP(
-  pagina,
-  // @ts-ignore
-  // @ts-ignore
-  pageLength,
-  dateInit,
-  // @ts-ignore
-  dateFinish
-) {
-  try {
-    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=1000&status=recebendo_proposta&modalidades=6|8`;
-    const response = await axios
-      .get(url)
-      .then((result) => {
-
-        const dataBidding = result.data.items.filter(
-          (
-            /** @type {{ data_publicacao_pncp: string;createdAt:string }} */ item
-          ) =>
-            item.createdAt.includes(converterData(dateInit).toString()) ||
-            item.createdAt.includes(converterData(dateFinish).toString())
-        );
-        /** @type {Data} */
-        const data = {
-          items: dataBidding,
-          total: dataBidding.length,//result.data.total,
-        };
-        // console.log(data.items.length, data.total)
-        return data;
-      })
-      .catch((error) => {
-        console.log(error.message, 'Funcao: getBiddingsNoticesPNCP');
-        //return error.message;
-      });
-    /**
-     * @type {number} total
-     */
-    const total = parseInt(response.total) ?? 0;
-    //console.log(total)
-    /** @type {Array<BidItem>} */
-    const biddings = response.items.map(
-      (
-        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
-      ) => {
-        /**
-         * @type {BidItem}
-         */
-        const bidding = {
-          cnpj: item.orgao_cnpj,
-          edital: String(item.title)
-            .replace(/[^0-9]/gi, "")
-            .trim(),
-          orgao: item.orgao_nome,
-          numero_sequencial: item.numero_sequencial,
-          ano: item.ano,
-          code_pncp: item.numero_controle_pncp,
-        };
-        return bidding;
-        //console.log(bidding)
-      }
-    );
-    return { biddings, total };
-  } catch (error) {
-    console.log(error.message, "getBiddingsNoticesPNCP");
-    //return { msg: error.message };
-  }
-}
 
 module.exports = {
-  getDataBidding,
+  getDataBiddingsComprasnet,
 };
 
 //getDataBiddingsComprasnet({ uasg: '', edital: '', pagina: 1, dt_inicio: '23/05/2024', dt_fim: '23/05/2024' })
