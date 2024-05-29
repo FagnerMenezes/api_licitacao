@@ -44,7 +44,7 @@ const getDataBiddingsComprasnet = async (
     const { uasg, edital, pagina, dt_inicio, dt_fim } = dataBody;
     let pg = `${pagina}`;
     let data = [];
-    const totalPagesComprasnet = await totalBiddings(dt_inicio, dt_fim) || 0;
+    //const totalPagesComprasnet = await totalBiddings(dt_inicio, dt_fim) || 0;
     const promiseDados = [];
     const url = urlGetBiddingComprasnet(dt_inicio, dt_fim, pg, uasg, edital);
     promiseDados.push(
