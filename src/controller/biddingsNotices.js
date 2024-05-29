@@ -4,7 +4,7 @@ const {
 } = require("../services/pncp/getBiddingsPncp");
 const {
   getDataBidding,
-} = require("../services/comprasnet/getDataBiddingsComprasnet");
+} = require("../services/BiddingsNotices/index");
 
 /**
  * @description Retorna os dados da licitações retiradas dos portais

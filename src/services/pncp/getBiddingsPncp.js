@@ -1,5 +1,7 @@
 const { default: axios } = require("axios");
 const { v4: ID } = require("uuid");
+const { converterData } = require("../../util/formatDate");
+
 const keywords = [
   "solda",
   "eletrodo",
@@ -14,6 +16,7 @@ const keywords = [
   "gerador",
   "cilindro",
   "Vareta",
+  "escova",
 ];
 /**
  * @typedef {Object} BidItem
@@ -31,7 +34,83 @@ const keywords = [
  */
 
 /**
- * @description Função para buscar licitações no portal PNCP
+ * @description função principal para buscar os dados no portal PNCP
+ * @param {any} pagina número da paginação
+ * @param {any} pageLength total de dados a serem retornados de 10 - 1000
+ * @param {any} dateInit data inicial
+ * @param {any} dateFinish data final
+ */
+async function getBiddingsNoticesPNCP(
+  pagina,
+  // @ts-ignore
+  // @ts-ignore
+  pageLength,
+  dateInit,
+  // @ts-ignore
+  dateFinish
+) {
+  try {
+    const url = `https://pncp.gov.br/api/search/?q=SOLDA&tipos_documento=edital&ordenacao=-data&pagina=${pagina}&tam_pagina=1000&status=recebendo_proposta&modalidades=6|8`;
+    const response = await axios
+      .get(url)
+      .then((result) => {
+
+        const dataBidding = result.data.items.filter(
+          (
+            /** @type {{ data_publicacao_pncp: string;createdAt:string }} */ item
+          ) =>
+            item.createdAt.includes(converterData(dateInit).toString()) ||
+            item.createdAt.includes(converterData(dateFinish).toString())
+        );
+        /** @type {Data} */
+        const data = {
+          items: dataBidding,
+          total: dataBidding.length,
+        };
+
+        return data;
+      })
+      .catch((error) => {
+        console.log(error.message, 'Funcao: getBiddingsNoticesPNCP');
+
+      });
+    /**
+     * @type {number} total
+     */
+    const total = parseInt(response.total) ?? 0;
+
+    /** @type {Array<BidItem>} */
+    const biddings = response.items.map(
+      (
+        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
+      ) => {
+        /**
+         * @type {BidItem}
+         */
+        const bidding = {
+          cnpj: item.orgao_cnpj,
+          edital: String(item.title)
+            .replace(/[^0-9]/gi, "")
+            .trim(),
+          orgao: item.orgao_nome,
+          numero_sequencial: item.numero_sequencial,
+          ano: item.ano,
+          code_pncp: item.numero_controle_pncp,
+        };
+        return bidding;
+
+      }
+    );
+    return { biddings, total };
+  } catch (error) {
+    console.log(error.message, "getBiddingsNoticesPNCP");
+
+  }
+}
+
+
+/**
+ * @description Função para buscar licitações no portal PNCP pelo code_pncp
  * @param {string} code_pncp código de controle do portal pncp
  * @returns array objeto json
  */
@@ -82,6 +161,61 @@ async function getBiddingsNoticesPNCP(code_pncp) {
     return { biddings, total };
   } catch (error) {
     console.log(error.message, "getBiddingsNoticesPNCP");
+  }
+}
+
+/**
+ * @param {any} uasg
+ */
+async function getBiddingsNoticesPNCPForUasg(uasg) {
+  try {
+    const url = `https://pncp.gov.br/api/search/?q=${uasg}&tipos_documento=edital&ordenacao=-data&pagina=1&tam_pagina=100&status=recebendo_proposta`;
+    const response = await axios
+      .get(url)
+      .then((result) => {
+        /** @type {Data} */
+
+        const data = {
+          items: result.data.items,
+          total: result.data.total,
+        };
+        return data;
+      })
+      .catch((error) => {
+        console.log(error.message, "getBiddingsNoticesPNCPForUasg");
+        //return [];
+      });
+    /**
+     * @type {number} total
+     */
+    const total = parseInt(response.total) ?? 0;
+    //console.log(response.items)
+    /** @type {Array<BidItem>} */
+    const biddings = response?.items?.map(
+      (
+        /** @type {{ orgao_cnpj: string; title: string; orgao_nome: string; numero_sequencial: string;ano:string; numero_controle_pncp:string }} */ item
+      ) => {
+        /**
+         * @type {BidItem}
+         */
+        const bidding = {
+          cnpj: item.orgao_cnpj,
+          edital: String(item.title)
+            .replace(/[^0-9]/gi, "")
+            .trim(),
+          orgao: item.orgao_nome,
+          numero_sequencial: item.numero_sequencial,
+          ano: item.ano,
+          code_pncp: item.numero_controle_pncp,
+        };
+
+        return bidding;
+      }
+    );
+    return { biddings, total };
+  } catch (error) {
+    console.log(error.message, "getBiddingsNoticesPNCPForUasg");
+    return []
   }
 }
 
@@ -275,7 +409,7 @@ const checkPortalPncp = async (portal) => {
 };
 
 /**
- * @description Função geral para buscar licitações no portal PNCP
+ * @description Função geral para organizar os dados da licitação vindo do portal pncp
  * @param {string} code codigo PNCP
  * @returns array objeto json
  */
@@ -351,7 +485,7 @@ const getDataBiddingPortalPncp = async (code) => {
     }
   } catch (error) {
     console.log(error.message, "getDataBiddingPortalPncp");
-    return {};
+    //return {};
   }
 };
 
@@ -372,4 +506,36 @@ function verificarPalavrasChave(texto, palavrasChave) {
   return false; // Se nenhuma palavra-chave for encontrada, retorna falso
 }
 
-module.exports = { getDataBiddingPortalPncp };
+
+const getDataPCNP = async (
+  /** @type {string} */ pagina,
+  /** @type {string} */ pageLength,
+  /** @type {any} */ dateInit,
+  /** @type {any} */ dateFinish
+) => {
+  try {
+    const data = await getBiddingsNoticesPNCP(
+      pagina,
+      pageLength,
+      dateInit,
+      dateFinish
+    );
+    // @ts-ignore
+    const ds = [];
+
+    //if (data.total > 0) {
+    // @ts-ignore
+    for (let i = 0; i < data?.biddings?.length; i++) {
+      // @ts-ignore
+      ds.push(await getDataBiddingPortalPncp(data.biddings[i].code_pncp));
+    }
+    //@ts-ignore
+    const dataSet = ds.flatMap((x) => x);
+    return dataSet;
+    //  }
+  } catch (error) {
+    console.log(error.message, "getDataPCNP");
+  }
+};
+
+module.exports = { getDataBiddingPortalPncp, getDataPCNP, getBiddingsNoticesPNCPForUasg };
