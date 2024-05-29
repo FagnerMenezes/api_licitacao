@@ -73,7 +73,7 @@ const getDataBiddingsComprasnet = async (
             };
             dadosComprasnet.push(dados);
           });
-        //console.log(dadosComprasnet);
+
         return dadosComprasnet;
       })
     );
