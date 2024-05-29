@@ -111,7 +111,7 @@ const getDataBiddingsComprasnet = async (
     }
     const data_set = data.flatMap((data) => data);
 
-    return { data: data_set, totalPages: totalPagesComprasnet }
+    return { data: data_set, totalPages: 0 }
   } catch (error) {
     console.log(error.message, "getDataBiddingsComprasnet");
   }
