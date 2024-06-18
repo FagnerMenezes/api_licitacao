@@ -7,16 +7,21 @@ const keywords = [
   "eletrodo",
   "eletrodos",
   "inversora",
-  "regulador",
+  "regulador de pressão",
   "soldagem",
-  "mascara",
+  "mascara automatica",
+  "mascara para solda",
   "tungstênio",
   "furadeira",
+  "parafusadeira",
   "compressor",
   "gerador",
   "cilindro",
-  "Vareta",
-  "escova",
+  "Vareta tig",
+  "escova circular",
+  "escova rotativa",
+  "conjunto para solda",
+  "disco de corte",
 ];
 /**
  * @typedef {Object} BidItem
@@ -234,6 +239,7 @@ async function getDataBiddingsPNCP(cnpj, code, year) {
     const data = await axios
       .get(url)
       .then(async (element) => {
+        //console.log(element.data)
         const data = {
           process_data: {
             status: "Cadastrar proposta",
@@ -259,11 +265,12 @@ async function getDataBiddingsPNCP(cnpj, code, year) {
             ),
             object: element.data.objetoCompra,
             code_pncp: element.data.numeroControlePNCP,
+            srp: element?.data?.srp
           },
           government: [
             {
               _id: ID(),
-              name: element.data?.orgaoEntidade?.razaoSocial,
+              name: element.data?.orgaoEntidade?.razaoSocial + ' - ' + element.data?.unidadeOrgao?.nomeUnidade + " - " + element.data?.unidadeOrgao?.ufSigla,
               cnpj: element.data?.orgaoEntidade?.cnpj,
               code_government: element.data?.unidadeOrgao?.codigoUnidade,
               manager: "true",
@@ -499,10 +506,16 @@ function verificarPalavrasChave(texto, palavrasChave) {
   // Verifica se o texto contém cada palavra-chave
   for (let i = 0; i < palavrasChave.length; i++) {
     const palavraChave = palavrasChave[i].toLowerCase();
+    const regex = new RegExp(`\\b${palavraChave}\\b`, 'gi');
     //console.log(textoMinusc, palavraChave);
-    if (textoMinusc.includes(palavraChave)) {
+    // if (textoMinusc.includes(palavraChave)) {
+    //   return true; // Se encontrar qualquer palavra-chave, retorna verdadeiro
+    // }
+    if (regex.test(textoMinusc)) {
       return true; // Se encontrar qualquer palavra-chave, retorna verdadeiro
     }
+
+
   }
 
   return false; // Se nenhuma palavra-chave for encontrada, retorna falso

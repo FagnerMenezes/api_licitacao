@@ -114,6 +114,7 @@ const getDataBiddingsComprasnet = async (
     return { data: data_set, totalPages: 0 }
   } catch (error) {
     console.log(error.message, "getDataBiddingsComprasnet");
+
   }
 };
 
