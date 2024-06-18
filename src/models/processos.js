@@ -16,6 +16,7 @@ const procesSchema = new Schema({
     modality: String,
     portal: String,
     code_pncp: String,
+    srp: String
   },
   government: [
     {

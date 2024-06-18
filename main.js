@@ -24,13 +24,17 @@ app.use("/orgaos", orgao);
 app.use("/portais", portal);
 app.use("/processos", processo);
 app.use("/modalidades", modalidade);
-app.use("/tipo_disputa", tipo_disputa), app.use("/status", status);
+app.use("/tipo_disputa", tipo_disputa);
+app.use("/status", status);
 app.use("/empenhos", empenho);
 app.use("/biddingsNotices", biddingsNotices);
 app.use("/users", users);
 app.use("/registerProposal", registerProposal);
-
-const port = 21052 || 3000;
+app.use((err, req, res, next) => {
+  console.log('error middleware');
+  res.sendStatus(500)
+})
+const port = 21061 || 3000;
 app.listen(port, (err) => {
   if (err) return console.log(err);
   console.log(`api rodando na porta ${port}`);
