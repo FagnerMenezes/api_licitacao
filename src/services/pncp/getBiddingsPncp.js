@@ -2,6 +2,23 @@ const { default: axios } = require('axios');
 const { v4: ID } = require('uuid');
 const { converterData } = require("../../util/formatDate");
 
+//https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-consultas/v1/uasg/989571/hierarquia
+
+//url CADASTRAR PROPOSTA COMPRASNET POST
+//https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-fase-externa/v1/compras/16020005900012024/itens/98/participacao
+//ENVIAR TOKEN
+'Bearer    eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiIwNDA1Mjk4MTUzNyIsInRpcG8iOiJGIiwiaWRlbnRpZmljYWNhb19mb3JuZWNlZG9yIjoiMTUxMzUyOTIwMDAxNDciLCJpZF9zZXNzYW8iOjUyODcxMzA5LCJvcmlnZW1fc2Vzc2FvIjoiVyIsImF1dGVudGljYWNhbyI6IkwiLCJuaXZlaXNfY29uZmlhYmlsaWRhZGUiOlsxLDIsM10sInRpcG9fZm9ybmVjZWRvciI6IkoiLCJwb3J0ZV9mb3JuZWNlZG9yIjoiMSIsImlhdCI6MTcxODkyNzkzNywiZXhwIjoxNzE4OTI4NTM3fQ.XscnhfHDxvVaTlOslfK9HIecS0oLV4oGn_4Uz1smP18e6mFKYedbzSyC9op69shUFjAQ2g7AwScHYBQhEVMQZAk20GgK_qcKmnhYs1emAH2qmsPyzkUmf7WZyyWsyzWgb3Y4t2F9d0HjcpJldWTxm3qY_HXdjf3ZQfqQo6zQDSw8kgbGyDonqzaeiO3b8g-cGqUp8JAxuyhjV3kp37rm1Fw4GfK8sIBIRQrU8Kkz5_mdRVe8ksOQKb9i-pZdl_iFs77aA4dk9RMdZWTO-Ff8dECVeULICa0M8wI0eyY-ENhNBHSTIaTESE04XFT_L_IPsrlw5gNGpV65vUkV5O3TOntE3RQAqaQjOIrgUoSak1xGmxwe8t1pwlByVP9b4WBWrp-A3Z6zuE1kSeSTn3j64RbY-CImeSy8dneH6avX7e_fZuL6t2sypGzhn0q2FHwJyDkhhyUwaBkLZBeZ0YMtTCTglVOKzhi7VZpc3jGXeNlHNAbmxbGnqbPzZOjfvlyi39BcaBMTFzn9qe9xboNizyDivRxc63haAQl_ch1Uk5jnJBhTUgIDqqGMg2GBrMaN9QwaIifV5dhS_ATVDyBBEValoadr4Z2AH2ZHUdWPD6vPBxx63TadJLU5XY1uXp9kbxNtZc_eEhtVyuFYPJlE3g94gLwhTVlVUXYxRm3I7Cw'
+
+
+const body = {
+  "marcaFabricante": "APOLLO",
+  "modeloVersao": "CELERON",
+  "modificado": true,
+  "propostaTrabalhoMre": 0,
+  "quantidadeOfertada": 145,
+  "valor": 160
+}
+
 const keywords = [
   "solda",
   "eletrodo",
@@ -40,10 +57,10 @@ const keywords = [
 
 /**
  * @description função principal para buscar os dados no portal PNCP
- * @param {any} pagina número da paginação
- * @param {any} pageLength total de dados a serem retornados de 10 - 1000
- * @param {any} dateInit data inicial
- * @param {any} dateFinish data final
+ * @param {string} pagina número da paginação
+ * @param {string} pageLength total de dados a serem retornados de 10 - 1000
+ * @param {string} dateInit data inicial
+ * @param {string} dateFinish data final
  */
 
 async function getBiddingsNoticesPNCP(
@@ -265,7 +282,8 @@ async function getDataBiddingsPNCP(cnpj, code, year) {
             ),
             object: element.data.objetoCompra,
             code_pncp: element.data.numeroControlePNCP,
-            srp: element?.data?.srp
+            srp: element?.data?.srp,
+            code_bidding_pcp: ''
           },
           government: [
             {

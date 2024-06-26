@@ -32,7 +32,7 @@ const dataBiddingComprasPublicas = async (url) => {
 //PEGA AS LICITAÇÕES NO PORTAL DE COMPRAS PUBLICAS
 const fetchBiddingsPortalComprasPublicas = async (body, pagina) => {
   const { dataInicial, dataFinal } = body;
-  const url = await urlComprasPublicas(pagina, dataInicial, dataFinal);
+  const url = urlComprasPublicas(pagina, dataInicial, dataFinal);
   //console.log(url);
   const response = await axios.default.get(url);
 
@@ -129,6 +129,7 @@ const createItem = (item) => {
 const createBidding = async (item, dataBiddings, items) => {
   try {
     const dataAbertura = dataBiddings.dataHoraFinalRecebimentoPropostas;
+    console.log(dataBiddings.codigoLicitacao)
     return {
       _id: ID(),
       process_data: {
@@ -146,6 +147,9 @@ const createBidding = async (item, dataBiddings, items) => {
         date_init: String(
           dataBiddings.dataHoraInicioRecebimentoPropostas
         ).split("T")[0],
+        code_pncp: '',
+        srp: '',
+        code_bidding_pcp: dataBiddings.codigoLicitacao
       },
       government: [
         {
