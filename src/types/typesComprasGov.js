@@ -28,5 +28,30 @@
  */
 
 /**
+ * @typedef {Object} ChaveCompra
+ * @property {number} idUasgIdentificacao
+ * @property {number} idModalidade
+ * @property {number} numero
+ * @property {number} ano
+ * @property {number} numeroUasg
+ */
+
+/**
+ * @typedef {Object} Mensage
+ * @property {ChaveCompra} chaveCompra
+ * @property {string} chaveMensagemNaOrigem
+ * @property {string} texto
+ * @property {string} categoria
+ * @property {string} dataHora
+ * @property {string} tipoRemetente
+ * @property {string}  identificadorDestinatario
+ * @property {string}  identificadorRemetente
+ */
+
+/**
+ * @typedef {Mensage[]} DataMsg
+ */
+
+/**
  * @typedef {Data} DataArray
  */

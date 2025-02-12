@@ -6,7 +6,11 @@ const user = {
   auth: async (req, res) => {
     const login = await authServices.login(req.body);
     //console.log(login);
-    res.status(login.status).json(login);
+    if (login) {
+      res.status(login.status).json(login);
+    } else {
+      res.status(500).json({ msg: "Login failed" });
+    }
   },
   create: async (req, res) => {
     const createUser = await userModel.post(req.body);
@@ -37,7 +41,13 @@ const authenticated = async (req, res, next) => {
   if (!token) {
     return res.status(404).json({ msg: "Acesso negado" });
   }
-  jsw.verify(token, process.env.SECRET, function (err, decoded) {
+  const secret = process.env.SECRET;
+  if (!secret) {
+    return res
+      .status(500)
+      .json({ msg: "Internal server error: SECRET not set" });
+  }
+  jsw.verify(token, secret, function (err, decoded) {
     // console.log(decoded);
     if (err) {
       return res.status(404).json({ msg: err.message });

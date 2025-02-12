@@ -9,10 +9,10 @@ exports.findProcesso = async (req, res) => {
     var start = req.query.start;
     var end = req.query.end;
     // console.log(limite)
-    if (limite === NaN || undefined) {
+    if (isNaN(limite) || limite === undefined) {
       limite = 1;
     }
-    if (pageNumber === NaN || undefined) {
+    if (isNaN(pageNumber) || pageNumber === undefined) {
       pageNumber = 0;
     }
     // console.log(limite + ' - ' +pageNumber)
@@ -85,7 +85,7 @@ exports.findProcesso = async (req, res) => {
 exports.fyndByIdProcesso = async (req, res) => {
   try {
     const Processos = await Processo.find({
-      _id: ObjectId(req.params.id),
+      _id: new ObjectId(req.params.id),
     }).then((result) => {
       return result;
     });

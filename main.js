@@ -13,6 +13,8 @@ const status = require("./src/routers/status");
 const biddingsNotices = require("./src/routers/biddingsNotices");
 const users = require("./src/routers/users");
 const registerProposal = require("./src/routers/registerProposal");
+const comprasgov = require("./src/routers/comprasgov");
+const products = require("./src/routers/products");
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -30,10 +32,12 @@ app.use("/empenhos", empenho);
 app.use("/biddingsNotices", biddingsNotices);
 app.use("/users", users);
 app.use("/registerProposal", registerProposal);
+app.use("/comprasgov", comprasgov);
+app.use("/products", products);
 app.use((err, req, res, next) => {
-  console.log('error middleware');
-  res.sendStatus(500)
-})
+  console.log("error middleware");
+  res.sendStatus(500);
+});
 const port = 21061 || 3000;
 app.listen(port, (err) => {
   if (err) return console.log(err);
